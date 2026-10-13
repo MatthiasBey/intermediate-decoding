@@ -1,0 +1,21 @@
+# Conda environment for all scripts in this repository. Install it with install_env.sh.
+# The versions are those used to make the figures of the paper.
+name: intermediate_decoding
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - cdo=2.4
+  - numpy=2.3
+  - scipy=1.16
+  - pandas=2.3
+  - xarray=2025.12
+  - dask=2025.11
+  - netcdf4=1.7
+  - psutil
+  - pytorch=2.7
+  - pip
+  - pip:
+      - jax==0.8.1
+      - matplotlib==3.10.7
+      - seaborn==0.13.2

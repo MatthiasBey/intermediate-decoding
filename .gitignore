@@ -1,0 +1,14 @@
+# input data and precomputed diagnostics (published separately, see data/README.md
+# and results/README.md) - only the READMEs are tracked
+data/*
+!data/README.md
+results/*
+!results/README.md
+# figures created by the pipelines (figures/published/ is tracked)
+figures/paper/
+figures/single_run/
+slurm-*.out
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+downloads/

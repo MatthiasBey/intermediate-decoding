@@ -1,0 +1,17 @@
+#!/bin/bash
+# Example SLURM wrapper for the three pipelines (adapt partition, time and the environment path).
+# Submit from the repository root:
+#   sbatch run_pipeline.sub run_paper_figures.sh [steps ...]
+#   sbatch run_pipeline.sub run_single_run_calculations.sh [steps ...]
+#   sbatch run_pipeline.sub run_single_run_figures.sh [steps ...]
+#SBATCH --job-name=intermediate_decoding_pipeline
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=120G
+#SBATCH --time=24:00:00
+#SBATCH --output=slurm-%j.out
+
+# activate the environment created by install_env.sh, e.g.
+# source "$(conda info --base)/etc/profile.d/conda.sh"; conda activate intermediate_decoding
+
+bash "$@"

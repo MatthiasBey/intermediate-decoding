@@ -1,0 +1,63 @@
+import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
+    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
+sys.path.insert(0, _SCRIPTS_DIR)
+import config
+# %% Imports
+from datetime import datetime, timedelta
+
+
+import utils.load_data as load_data
+
+# %% ArchesWeather input difference
+# ERA5 difference between the two ArchesWeather input states (24 h apart),
+# X(t-24h) - X(t-48h) for forecast valid time t, on the native 0.25 deg grid (not
+# coarsened to 1.5 deg; the spectral transform remaps it). Saved to
+# results/<mode>/increments/archesweather/diff_input_<date>.nc.
+
+path_arches_tuned_increments = f"{config.RESULTS_DIR}/increments/archesweather/"
+os.makedirs(path_arches_tuned_increments, exist_ok=True)
+
+# %% Dates: 10th of every month in 2020 at 00, 06, 12, 18 UTC
+prediction_times = [
+    datetime(2020, month, 10, hour)
+    for month in range(1, 13)
+    for hour in (0, 6, 12, 18)
+]
+
+# Optional argument: one date, as index 0-47 or as "%Y-%m-%d-%H-%M" (default: all 48 dates)
+if len(sys.argv) > 1:
+    try:
+        analysis_datetimes = [prediction_times[int(sys.argv[1])]]
+    except ValueError:
+        analysis_datetimes = [datetime.strptime(sys.argv[1], "%Y-%m-%d-%H-%M")]
+else:
+    analysis_datetimes = prediction_times
+
+# %% Loop over dates
+for analysis_datetime in analysis_datetimes:
+    time_str = analysis_datetime.strftime("%Y-%m-%d-%H-%M")
+    outfile = f'{path_arches_tuned_increments}diff_input_{time_str}.nc'
+
+    if os.path.exists(outfile):
+        print(f"=== {time_str}: already exists, skipping ===")
+        continue
+
+    print(f"=== {time_str} ===")
+
+    h_idx = analysis_datetime.hour // 6  # index of the hour within a daily file (00, 06, 12, 18 UTC)
+    window_start = analysis_datetime - timedelta(days=2)
+    window_end = analysis_datetime - timedelta(days=1)
+
+    try:
+        ds = load_data.load_data(window_start, window_end)
+    except FileNotFoundError as e:
+        print(f"  WARNING: missing ERA5 source data for {time_str} ({e}) - skipping this date.")
+        continue
+
+    # 8 time steps (2 daily files x 4): h_idx is t-48h, 4+h_idx is t-24h
+    diff_input_24h = ds.isel(time=4 + h_idx) - ds.isel(time=h_idx)
+
+    diff_input_24h.to_netcdf(outfile, mode='w')
+    print(f"  Saved diff_input to {outfile}")
