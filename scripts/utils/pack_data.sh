@@ -7,8 +7,9 @@
 # Usage (from anywhere):
 #   bash scripts/utils/pack_data.sh [output folder]      # default: ../data_release next to the repository
 #
-# Writes the archives and md5sums.txt to the output folder. After uploading, copy the download links
-# and the checksums from md5sums.txt into download_data.sh.
+# Writes the archives and md5sums.txt to the output folder. upload_to_zenodo.py uploads them in pieces
+# of 1 GiB. Afterwards, enter the record ids, the number of pieces and the checksums from md5sums.txt
+# in download_data.sh.
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/../.."
 OUT=$(readlink -f "${1:-../data_release}")

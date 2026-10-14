@@ -20,15 +20,16 @@
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")"
 
-#  name                       group     md5                               download link
+# Each archive is stored on Zenodo in pieces of 1 GiB (<name>.tar.000, <name>.tar.001, ...).
+#  name                       group     record    pieces  md5 of the whole archive
 ARCHIVES="
-results_paper                 results   d3d4f8426cf099812d54934b833ce6b3  https://zenodo.org/records/23345097/files/results_paper.tar?download=1
-data_base                     results   45bc59bc12eed68d507ed6a2af3fa0da  https://zenodo.org/records/23345097/files/data_base.tar?download=1
-data_era5                     all       daa1bcf311883c9db3df324837ef2346  https://zenodo.org/records/23345097/files/data_era5.tar?download=1
-data_latent_states            all       4f2a0a4e81d60eef23fbb06da42a9103  https://zenodo.org/records/23345099/files/data_latent_states.tar?download=1
-data_decodings_graphcast      all       e230e89135b1a24f48c81a3341fc3779  https://zenodo.org/records/23345099/files/data_decodings_graphcast.tar?download=1
-data_decodings_aurora         all       b1d75e84338cda501fad5836be03b978  https://zenodo.org/records/23345101/files/data_decodings_aurora.tar?download=1
-data_decodings_other          all       49b934cafab3a55269018b8391ddbcdd  https://zenodo.org/records/23345097/files/data_decodings_other.tar?download=1
+results_paper                 results   23345097   2      d3d4f8426cf099812d54934b833ce6b3
+data_base                     results   23345097   3      45bc59bc12eed68d507ed6a2af3fa0da
+data_era5                     all       23345097  16      daa1bcf311883c9db3df324837ef2346
+data_latent_states            all       23345099   8      4f2a0a4e81d60eef23fbb06da42a9103
+data_decodings_graphcast      all       23345099  30      e230e89135b1a24f48c81a3341fc3779
+data_decodings_aurora         all       23345101  27      b1d75e84338cda501fad5836be03b978
+data_decodings_other          all       23345097  21      49b934cafab3a55269018b8391ddbcdd
 "
 
 DOWNLOAD_DIR=${DOWNLOAD_DIR:-downloads}
@@ -53,30 +54,43 @@ done
 
 mkdir -p "$DOWNLOAD_DIR" "$DATA_DIR"
 for name in $(echo $selected | tr ' ' '\n' | awk '!seen[$0]++'); do
-    read -r md5 url <<< "$(echo "$ARCHIVES" | awk -v n="$name" '$1 == n {print $3, $4}')"
+    read -r record npieces md5 <<< "$(echo "$ARCHIVES" | awk -v n="$name" '$1 == n {print $3, $4, $5}')"
     marker="$DOWNLOAD_DIR/.$name.extracted"
     if [ -e "$marker" ]; then
         echo "=== $name: already extracted, skipping"
         continue
     fi
 
-    file="$DOWNLOAD_DIR/$name.tar"
-    echo "=== $name: downloading"
-    curl -L --fail --retry 3 -C - -o "$file" "$url"   # -C - resumes an interrupted download
+    echo "=== $name: downloading $npieces pieces"
+    pieces=()
+    for i in $(seq 0 $((npieces - 1))); do
+        piece=$(printf "%s.tar.%03d" "$name" "$i")
+        pieces+=("$DOWNLOAD_DIR/$piece")
+        [ -e "$DOWNLOAD_DIR/.$piece.done" ] && continue
+        echo "$piece"
+        curl -L --fail --retry 5 --progress-bar -C - -o "$DOWNLOAD_DIR/$piece" \
+            "https://zenodo.org/records/$record/files/$piece?download=1"   # -C - resumes a download
+        touch "$DOWNLOAD_DIR/.$piece.done"
+    done
 
     echo "=== $name: checking"
-    if [ "$(md5sum "$file" | cut -d' ' -f1)" != "$md5" ]; then
-        echo "Checksum of $file does not match. Delete the file and run the script again."
+    if [ "$(cat "${pieces[@]}" | md5sum | cut -d' ' -f1)" != "$md5" ]; then
+        echo "Checksum of $name does not match. Delete $DOWNLOAD_DIR/$name.tar.* and"
+        echo "$DOWNLOAD_DIR/.$name.tar.*.done and run the script again."
         exit 1
     fi
 
     echo "=== $name: extracting"
     if [ "$name" = results_paper ]; then
-        tar -xf "$file"                                             # -> results/paper/
+        cat "${pieces[@]}" | tar -xf -                                      # -> results/paper/
     else
-        tar -xf "$file" -C "$DATA_DIR" --strip-components=1         # data/... -> $DATA_DIR/...
+        cat "${pieces[@]}" | tar -xf - -C "$DATA_DIR" --strip-components=1 # data/... -> $DATA_DIR/...
     fi
     touch "$marker"
-    [ "${KEEP_ARCHIVES:-0}" = 1 ] || rm "$file"
+    if [ "${KEEP_ARCHIVES:-0}" != 1 ]; then
+        for piece in "${pieces[@]}"; do
+            rm "$piece" "$DOWNLOAD_DIR/.$(basename "$piece").done"
+        done
+    fi
 done
 echo "Done."

@@ -1,10 +1,10 @@
 # methods_without_data
 
 These scripts show how the translators and the covariance matrices of the paper were made. Both need
-the latent states of every 6-hourly forecast in 2020, about 1 TB per model, which we could not
-publish. None of the pipelines runs these scripts, but their results are part of the published data:
-the translators are in `data/translators/` and the covariance matrices in
-`results/paper/covariance_matrices/`.
+the latent states of every 6-hourly forecast in 2020, about 15 TB in total (12 TB of them from
+Aurora), which we could not publish. None of the pipelines runs these scripts, but their results
+are part of the published data: the translators are in `data/translators/` and the covariance
+matrices in `results/paper/covariance_matrices/`.
 
 To run the scripts yourself, extract the latent states (see the main README) and save them to
 `data/latent_states/<model>/` as `all_latents_<date>.npz`.
