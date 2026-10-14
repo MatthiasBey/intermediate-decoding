@@ -42,7 +42,7 @@ the bottom of each script. On a SLURM cluster, submit a pipeline with
 The paper evaluates 48 forecasts: the 10th of every month in 2020 at 00, 06, 12 and 18 UTC. The
 translators and covariance matrices were computed from the latent states of every 6-hourly forecast
 in 2020. All of this together is several tens of terabytes, too much to publish. Instead, two smaller
-packages are available at **[add DOI / link]**:
+packages are published on Zenodo in three parts, [10.5281/zenodo.23345097](https://doi.org/10.5281/zenodo.23345097), [10.5281/zenodo.23345099](https://doi.org/10.5281/zenodo.23345099) and [10.5281/zenodo.23345101](https://doi.org/10.5281/zenodo.23345101):
 
 - **`data/` (about 110 GB)**: everything needed to redo the analysis for one example forecast, valid
   2020-03-10 12 UTC. This includes the intermediate decodings, latent states and ERA5 fields of this

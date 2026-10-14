@@ -8,7 +8,7 @@ All code of the repository. Each subfolder has its own README.
 | `calculations/` | Diagnostics of a single forecast, written to `results/<mode>/` |
 | `plots/` | One script per figure or table of the paper, written to `figures/<mode>/` |
 | `methods_without_data/` | Translator training and covariance matrices. These need the latent states of the whole year 2020, which are not published. |
-| `utils/` | Shared helper modules for loading ERA5, spectral filtering with cdo, physical balances, encoder–decoder similarity and map plotting. Also `pack_data.sh`, which packs `data/` and `results/paper/` into the archives published with the paper. |
+| `utils/` | Shared helper modules for loading ERA5, spectral filtering with cdo, physical balances, encoder–decoder similarity and map plotting. Also `pack_data.sh`, which packs `data/` and `results/paper/` into the archives published with the paper, and `upload_to_zenodo.py`, which uploads these archives to Zenodo. |
 
 ## Modes
 

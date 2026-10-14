@@ -10,8 +10,8 @@ results/
 
 ## paper
 
-The diagnostics behind the figures and tables of the paper, published together with `data/` at
-**[add DOI / link]**. `bash download_data.sh results` downloads them into this folder.
+The diagnostics behind the figures and tables of the paper, published together with `data/` on
+Zenodo in three parts, [10.5281/zenodo.23345097](https://doi.org/10.5281/zenodo.23345097), [10.5281/zenodo.23345099](https://doi.org/10.5281/zenodo.23345099) and [10.5281/zenodo.23345101](https://doi.org/10.5281/zenodo.23345101). `bash download_data.sh results` downloads them into this folder.
 `run_paper_figures.sh` plots the paper figures from these files and saves its tables here as well.
 
 The diagnostics cover the 48 forecasts of the paper (the 10th of every month in 2020 at 00, 06, 12

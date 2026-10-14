@@ -1,8 +1,8 @@
 # data
 
 Input data for the example forecast, valid 2020-03-10 12 UTC. At about 110 GB the data are too large
-for git. They are published together with the diagnostics in `results/paper/` at
-**[add DOI / link]**. Download them with `bash download_data.sh all` from the repository folder. To
+for git. They are published together with the diagnostics in `results/paper/` on
+Zenodo in three parts, [10.5281/zenodo.23345097](https://doi.org/10.5281/zenodo.23345097), [10.5281/zenodo.23345099](https://doi.org/10.5281/zenodo.23345099) and [10.5281/zenodo.23345101](https://doi.org/10.5281/zenodo.23345101). Download them with `bash download_data.sh all` from the repository folder. To
 keep them somewhere else, set the environment variable `ID_DATA_DIR` to that location before
 downloading and running the scripts.
 

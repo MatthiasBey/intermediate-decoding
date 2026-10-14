@@ -1,5 +1,7 @@
 #!/bin/bash
-# Downloads the published data (DOI: [add DOI]) and extracts it into data/ and results/paper/.
+# Downloads the published data and extracts it into data/ and results/paper/. The data are
+# published on Zenodo in three parts: doi:10.5281/zenodo.23345097, doi:10.5281/zenodo.23345099
+# and doi:10.5281/zenodo.23345101.
 #
 # Usage:
 #   bash download_data.sh results    # ~4.5 GB: everything except the four example-forecast figures
@@ -18,22 +20,22 @@
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")"
 
-#  name                       group     md5                                download link
+#  name                       group     md5                               download link
 ARCHIVES="
-results_paper                 results   ADD_MD5   ADD_URL
-data_base                     results   ADD_MD5   ADD_URL
-data_era5                     all       ADD_MD5   ADD_URL
-data_latent_states            all       ADD_MD5   ADD_URL
-data_decodings_graphcast      all       ADD_MD5   ADD_URL
-data_decodings_aurora         all       ADD_MD5   ADD_URL
-data_decodings_other          all       ADD_MD5   ADD_URL
+results_paper                 results   d3d4f8426cf099812d54934b833ce6b3  https://zenodo.org/records/23345097/files/results_paper.tar?download=1
+data_base                     results   45bc59bc12eed68d507ed6a2af3fa0da  https://zenodo.org/records/23345097/files/data_base.tar?download=1
+data_era5                     all       daa1bcf311883c9db3df324837ef2346  https://zenodo.org/records/23345097/files/data_era5.tar?download=1
+data_latent_states            all       4f2a0a4e81d60eef23fbb06da42a9103  https://zenodo.org/records/23345099/files/data_latent_states.tar?download=1
+data_decodings_graphcast      all       e230e89135b1a24f48c81a3341fc3779  https://zenodo.org/records/23345099/files/data_decodings_graphcast.tar?download=1
+data_decodings_aurora         all       b1d75e84338cda501fad5836be03b978  https://zenodo.org/records/23345101/files/data_decodings_aurora.tar?download=1
+data_decodings_other          all       49b934cafab3a55269018b8391ddbcdd  https://zenodo.org/records/23345097/files/data_decodings_other.tar?download=1
 "
 
 DOWNLOAD_DIR=${DOWNLOAD_DIR:-downloads}
 DATA_DIR=${ID_DATA_DIR:-data}
 
 if [ $# -eq 0 ]; then
-    sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'
     exit 1
 fi
 
@@ -56,10 +58,6 @@ for name in $(echo $selected | tr ' ' '\n' | awk '!seen[$0]++'); do
     if [ -e "$marker" ]; then
         echo "=== $name: already extracted, skipping"
         continue
-    fi
-    if [ "$url" = ADD_URL ]; then
-        echo "The download links have not been added to this script yet."
-        exit 1
     fi
 
     file="$DOWNLOAD_DIR/$name.tar"
