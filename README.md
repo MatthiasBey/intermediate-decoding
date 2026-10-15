@@ -101,7 +101,7 @@ table below also lists which calculations in `scripts/calculations/` the figure 
 | Table: translator convergence | `tables/translator_convergence.py` | – |
 | **Supplement** | | |
 | `{graphcast,aurora,arches}_increments_{geopot,u_10m}` | `supplement/increments_all_models.py` | `1_increments` |
-| `increment_spectra_all_variables_{model}` | `supplement/increment_spectra_all_variables.py` | `4_spectral_filtering`, `5_increment_spectra` |
+| `increment_spectra_all_variables_{model}` | `supplement/increment_spectra_all_variables.py` | `5_increment_spectra` |
 | `translator_training_loss_{graphcast,aurora,arches}` | `supplement/translator_training_loss.py` | – |
 | `no_skip_translator_training_loss_{aurora,arches}` | `supplement/no_skip_translator_training_loss_*.py` | – |
 | `tuned_decoding_comparison_{aurora,arches}` | `supplement/tuned_decoding_comparison_*.py` | – |

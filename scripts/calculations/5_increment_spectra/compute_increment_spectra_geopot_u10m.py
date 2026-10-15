@@ -27,10 +27,12 @@ import utils.spectral_filter_for_xarray_fields_using_cdo as spectral_filt
 # (a^2 / (2 l(l+1)) * (P_div + P_vo)) and 10 m zonal wind (u_10m, scalar spectrum).
 # Power per l is sum_m w_m |c_l^m|^2 (w_m = 1 for m = 0, 2 for m > 0).
 #
-# geopot, div and vo are read from the spectral files of
-# calculations/4_spectral_filtering/1_filter_intermediate_decodings.py, their X_t
-# coefficients from calculations/4_spectral_filtering/3_spectral_power_of_states_and_input.py
-# (input_xt_spectral/). u_10m is transformed here from the intermediate decoding files
+# geopot, div and vo of the layers are read from the spectral files of
+# calculations/4_spectral_filtering/1_filter_intermediate_decodings.py. X_t (time=0 of the
+# decoding files: 6 h before the valid time for GraphCast and Aurora, 24 h for
+# ArchesWeather) is transformed here in the same way (N320, ArchesWeather truncated at
+# l = 120). Since the transform is linear, differences of coefficients are coefficients of
+# differences. u_10m is transformed here from the intermediate decoding files
 # (conservative remap to a Gaussian grid, gp2sp,linear): N320 for GraphCast and Aurora,
 # N60 (the Gaussian grid of the 1.5 deg resolution, T119) for ArchesWeather. All
 # ArchesWeather spectra end at l = 119.
@@ -45,6 +47,7 @@ aurora_time_str = (analysis_datetime - datetime.timedelta(hours=6)).strftime("%Y
 PLEV = 500.
 N_MAX = 639
 ARCHES_L_MAX = 119  # linear truncation of the N60 grid of ArchesWeather
+ARCHES_L_MAX_FILTER = 120  # truncation of 1_filter_intermediate_decodings.py, also used for X_t
 R_EARTH = 6.371e6
 
 blocks_per_layer = {0: 1, 1: 4, 2: 12, 3: 12, 4: 4}
@@ -73,7 +76,6 @@ spec_vars = {'geopot': 'geopot', 'sd': 'div', 'svo': 'vo'}
 
 filtered_fields_root = f"{config.RESULTS_DIR}/spectral_filtering"
 results_root = os.path.join(f"{config.RESULTS_DIR}/spectra", DATE)
-xt_spectral_root = os.path.join(results_root, "input_xt_spectral")
 temp_folder = f"{config.TMP_DIR}/spectral_filtering/12_0_{DATE}"
 os.makedirs(temp_folder, exist_ok=True)
 
@@ -88,12 +90,21 @@ def spectral_file(model, key):
     return os.path.join(filtered_fields_root, model, DATE, f"{prefix}{key}_spectral_var_all_vars.nc")
 
 
-def input_spectral_file(model):
-    """X_t coefficients written by calculations/4_spectral_filtering/3_spectral_power_of_states_and_input.py."""
-    path = os.path.join(xt_spectral_root, f"ds_{model}_input_xt_spectral_var_all_vars.nc")
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"{path} missing - run 3_spectral_power_of_states_and_input for {DATE} first")
-    return path
+def input_spectral_file(model, keys):
+    """Spectral coefficients of X_t (geopot, div, vo at PLEV), computed as in
+    calculations/4_spectral_filtering/1_filter_intermediate_decodings.py."""
+    ds = xr.open_dataset(decode_file(model, keys[0])).isel(time=0)[['geopot', 'u', 'v']].sel(plev=[PLEV]).load()
+    ds["lat"].attrs.update({"standard_name": "latitude", "long_name": "latitude", "units": "degrees_north", "axis": "Y"})
+    ds["lon"].attrs.update({"standard_name": "longitude", "long_name": "longitude", "units": "degrees_east", "axis": "X"})
+    ds["plev"].attrs.update({"standard_name": "air_pressure", "long_name": "pressure", "units": "hPa", "positive": "down", "axis": "Z"})
+    file_w = spectral_filt.create_weight_file(ds, temp_folder, name=f"{model}_input", gg_res='N320')
+    spectral_files = spectral_filt.field_to_spectral_clean(
+        ds, temp_folder=temp_folder, output_path=temp_folder,
+        name=f"{model}_input_xt", file_w=file_w, gg_res='N320',
+    )
+    if model == 'arches':
+        spectral_filt.truncate_spectral_file(spectral_files[0], l_max=ARCHES_L_MAX_FILTER)
+    return spectral_files[0]
 
 
 def decode_file(model, key):
@@ -181,7 +192,7 @@ for model, keys in keys_by_model.items():
     c_u10m, l_u10m, w_u10m = u10m_coeffs(model, keys)
     lw = {var: (l_nsp, w) for var in spec_vars}
     lw['u_10m'] = (l_u10m, w_u10m)
-    c_xt = load_coeffs(input_spectral_file(model))
+    c_xt = load_coeffs(input_spectral_file(model, keys))
     c_xt['u_10m'] = c_u10m[0]
     c_prev = c_xt
     for ik, key in enumerate(keys):

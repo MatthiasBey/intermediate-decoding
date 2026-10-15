@@ -40,7 +40,6 @@ step_spectral_filtering () {
         run calculations/4_spectral_filtering/1_filter_intermediate_decodings.py "$DATE" "$model"
     done
     run calculations/4_spectral_filtering/2_filter_era5.py "$DATE"
-    run calculations/4_spectral_filtering/3_spectral_power_of_states_and_input.py "$DATE"
 }
 
 step_spectra () {   # needs spectral_filtering

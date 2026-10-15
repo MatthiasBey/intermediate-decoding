@@ -52,11 +52,12 @@ transformed back. `cdo` must be on the `PATH`. Temporary files go to `results/<m
 |---|---|---|
 | `1_filter_intermediate_decodings.py` | Spectral coefficients and scale-separated fields of all intermediate decodings. Takes the model as a second argument (`arches`, `aurora`, `graphcast` or `all`). | `spectral_filtering/<model>/<date>/` (about 30 GB for GraphCast) |
 | `2_filter_era5.py` | The same for the ERA5 state at the valid time | `spectral_filtering/era5_reference/<date>/` |
-| `3_spectral_power_of_states_and_input.py` | Spectral power per wavenumber of the decoded states, and the spectral coefficients of the input state Xᵗ | `spectra/<date>/` |
 
 ## 5_increment_spectra
 
-Needs step 4.
+`compute_increment_spectra_geopot_u10m.py` needs the spectral coefficients from step 4;
+`compute_increment_spectra_all_variables.py` transforms all fields itself. Increment 0 is the first
+decoded state minus the input state Xᵗ, increment k the state of layer k minus that of layer k − 1.
 
 | Script | Computes | Output in `results/<mode>/spectra/<date>/` |
 |---|---|---|
