@@ -33,6 +33,7 @@ import hashlib
 import json
 import math
 import os
+import subprocess
 import sys
 import threading
 import time
@@ -154,27 +155,47 @@ class Zenodo:
             time.sleep(30)
         sys.exit(f"Zenodo does not respond to {method} {url}. Run the script again later.")
 
+    def put(self, url, reader, length):
+        """PUT the data of reader with curl; returns (HTTP status, response body or curl error).
+
+        curl shows the status even when Zenodo rejects the upload before all data are sent. The
+        token is given to curl through a pipe, so it does not appear in the process list."""
+        config_r, config_w = os.pipe()
+        os.write(config_w, f'header = "Authorization: Bearer {self.token}"\n'.encode())
+        os.close(config_w)
+        proc = subprocess.Popen(
+            ["curl", "--silent", "--show-error", "--config", f"/dev/fd/{config_r}",
+             "-H", f"Content-Length: {length}", "-H", "Transfer-Encoding:",   # no chunked upload
+             "-H", "Content-Type: application/octet-stream",
+             "--upload-file", "-", "--write-out", "\n%{http_code}", url],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, pass_fds=(config_r,))
+        os.close(config_r)
+        try:
+            while data := reader.read(2**20):
+                proc.stdin.write(data)
+            proc.stdin.close()
+        except BrokenPipeError:       # curl stopped reading, e.g. because Zenodo answered early
+            pass
+        out = proc.stdout.read().decode(errors="replace")
+        err = proc.stderr.read().decode(errors="replace").strip()
+        proc.wait()
+        body, _, status = out.rpartition("\n")
+        return int(status) if status.isdigit() else 0, body.strip() or err
+
     def upload(self, bucket, name, path, offset, length):
         """Upload one piece; returns True if Zenodo received it with the right checksum."""
         for attempt in range(1, ATTEMPTS + 1):
             start = time.time()
             reader = PieceReader(path, offset, length)
-            req = urllib.request.Request(f"{bucket}/{name}", data=reader, method="PUT", headers={
-                "Authorization": f"Bearer {self.token}", "Content-Type": "application/octet-stream",
-                "Content-Length": str(length)})
-            try:
-                with urllib.request.urlopen(req, timeout=600) as r:
-                    checksum = json.loads(r.read())["checksum"].replace("md5:", "")
-                if checksum == reader.md5.hexdigest():
+            status, body = self.put(f"{bucket}/{name}", reader, length)
+            reader.close()
+            if status in (200, 201):
+                if json.loads(body)["checksum"].replace("md5:", "") == reader.md5.hexdigest():
                     log(f"  {name}: uploaded ({length / 1e6 / (time.time() - start):.0f} MB/s)")
                     return True
                 error = "checksum does not match"
-            except urllib.error.HTTPError as e:
-                error = f"HTTP {e.code}"
-            except Exception as e:
-                error = str(e) or type(e).__name__
-            finally:
-                reader.close()
+            else:
+                error = f"HTTP {status}: {' '.join(body.split())[:300]}"
             log(f"  {name}: failed ({error}), attempt {attempt} of {ATTEMPTS}")
             if attempt < ATTEMPTS:
                 time.sleep(WAIT)
@@ -252,7 +273,9 @@ def main():
         for i, future in enumerate(concurrent.futures.as_completed(futures), 1):
             if not future.result():
                 failed.append(futures[future])
-            log(f"{i} of {len(jobs)} done")
+                log(f"  {futures[future]}: gave up after {ATTEMPTS} attempts, try again with the next run")
+            log(f"{i - len(failed)} of {len(jobs)} uploaded, {len(failed)} failed, "
+                f"{len(jobs) - i} still to do")
     except KeyboardInterrupt:
         print("\nStopped. Run the script again to continue.")
         os._exit(1)

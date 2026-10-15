@@ -17,6 +17,10 @@
 # Archives are downloaded to downloads/ (set DOWNLOAD_DIR to change this), checked against their
 # md5 checksum, extracted and then deleted (set KEEP_ARCHIVES=1 to keep them). Archives that were
 # extracted before are skipped. data/ is extracted to ID_DATA_DIR if that is set.
+#
+# ZENODO_DRAFT=1 bash download_data.sh ... downloads from the unpublished Zenodo drafts instead
+# (only for the owner of the records, to test the download before publishing). It asks for a Zenodo
+# token with the scope deposit:write.
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")"
 
@@ -36,7 +40,7 @@ DOWNLOAD_DIR=${DOWNLOAD_DIR:-downloads}
 DATA_DIR=${ID_DATA_DIR:-data}
 
 if [ $# -eq 0 ]; then
-    sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'
     exit 1
 fi
 
@@ -51,6 +55,24 @@ for arg in "$@"; do
                  selected+=" $arg" ;;
     esac
 done
+
+if [ "${ZENODO_DRAFT:-0}" = 1 ]; then
+    read -rsp "Zenodo token (input is not shown): " ZENODO_TOKEN
+    echo
+fi
+
+# download <record> <file> <output>: from the published record, or with ZENODO_DRAFT=1 from the draft.
+# The token is passed to curl on stdin, so it does not appear in the process list.
+download() {
+    if [ "${ZENODO_DRAFT:-0}" = 1 ]; then
+        printf 'header = "Authorization: Bearer %s"\n' "$ZENODO_TOKEN" |
+            curl --config - -L --fail --retry 5 --progress-bar -C - -o "$3" \
+                "https://zenodo.org/api/records/$1/draft/files/$2/content"
+    else
+        curl -L --fail --retry 5 --progress-bar -C - -o "$3" \
+            "https://zenodo.org/records/$1/files/$2?download=1"           # -C - resumes a download
+    fi
+}
 
 mkdir -p "$DOWNLOAD_DIR" "$DATA_DIR"
 for name in $(echo $selected | tr ' ' '\n' | awk '!seen[$0]++'); do
@@ -68,8 +90,7 @@ for name in $(echo $selected | tr ' ' '\n' | awk '!seen[$0]++'); do
         pieces+=("$DOWNLOAD_DIR/$piece")
         [ -e "$DOWNLOAD_DIR/.$piece.done" ] && continue
         echo "$piece"
-        curl -L --fail --retry 5 --progress-bar -C - -o "$DOWNLOAD_DIR/$piece" \
-            "https://zenodo.org/records/$record/files/$piece?download=1"   # -C - resumes a download
+        download "$record" "$piece" "$DOWNLOAD_DIR/$piece"
         touch "$DOWNLOAD_DIR/.$piece.done"
     done
 
