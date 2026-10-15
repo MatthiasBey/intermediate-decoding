@@ -26,7 +26,9 @@ increment maps.
 | `archesweather_increments.py` | Increments of the ArchesWeather decodings, all layers and blocks |
 | `archesweather_input_difference.py` | Difference of the two ArchesWeather inputs, 24 h apart |
 | `aurora_increments.py` | Increments of the Aurora decodings, encoder output and all blocks |
-| `aurora_input_difference.py` | Difference of the two Aurora inputs (same times as GraphCast) |
+
+Aurora gets the same two ERA5 inputs as GraphCast (t−12 h and t−6 h), so the increment maps use the
+GraphCast input difference for Aurora as well.
 
 ## 2_relative_mse
 

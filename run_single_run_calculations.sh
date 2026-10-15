@@ -22,6 +22,9 @@ run () { echo; echo ">>> $PY $*"; "$PY" -u "$@"; }
 step_increments () {
     for model in graphcast archesweather aurora; do
         run calculations/1_increments/${model}_increments.py "$DATE"
+    done
+    # Aurora has the same ERA5 inputs as GraphCast, so its input difference is not computed separately
+    for model in graphcast archesweather; do
         run calculations/1_increments/${model}_input_difference.py "$DATE"
     done
 }
