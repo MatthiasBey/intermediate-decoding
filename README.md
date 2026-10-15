@@ -8,9 +8,6 @@ physical space with each model's own decoder, either directly or after an affine
 (tuned decoding). The decoded fields are then analysed for forecast skill, for how the spatial scales
 develop through the model, and for physical balance.
 
-> **Note:** The data for this repository are not available yet. They are being uploaded to Zenodo
-> and will be published soon (see [Data](#data)).
-
 ## Getting started
 
 Create the conda environment, which also contains the `cdo` command line tool:
@@ -20,7 +17,7 @@ bash install_env.sh
 conda activate intermediate_decoding
 ```
 
-Then download the data (available soon, see [Data](#data)):
+Then download the data (see [Data](#data)):
 
 ```bash
 bash download_data.sh results           # 4.5 GB, enough for most figures of the paper
@@ -41,9 +38,6 @@ the bottom of each script. On a SLURM cluster, submit a pipeline with
 `sbatch run_pipeline.sub run_paper_figures.sh` (adapt the resources in `run_pipeline.sub` first).
 
 ## Data
-
-> **Note:** The data are still being uploaded to Zenodo and will be available soon. Until then,
-> the DOIs below do not resolve and `download_data.sh` does not work yet.
 
 The paper evaluates 48 forecasts: the 10th of every month in 2020 at 00, 06, 12 and 18 UTC. The
 translators and covariance matrices were computed from the latent states of every 6-hourly forecast
