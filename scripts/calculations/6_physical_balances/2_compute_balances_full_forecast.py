@@ -1,24 +1,22 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% IMPORTS
+"""Geostrophic balance (|v_ageo| / |v_geo|, extratropics) and divergence/vorticity ratio
+of the final forecasts and of ERA5 (unscaled and spectrally scaled to each model), from
+the output of 1_create_spectrally_scaled_era5.py. One pkl per dataset in
+results/<mode>/balances_full_forecast/<date>/.
+
+sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M", default: config.SINGLE_DATE)
+"""
 import datetime
-import xarray as xr
+import os
 import pickle
+import sys
 
+import xarray as xr
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 import utils.physical_consistency_functions as phys_utils
 
 # %% CONFIG
-# Geostrophic balance (|v_ageo| / |v_geo|, extratropics) and divergence/vorticity ratio
-# of the final forecasts and of ERA5 (unscaled and spectrally scaled to each model), from
-# the output of 1_create_spectrally_scaled_era5.py. One pkl per dataset in
-# results/<mode>/balances_full_forecast/<date>/.
-#
-# sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M", default: config.SINGLE_DATE)
 if len(sys.argv) > 1:
     analysis_datetime = datetime.datetime.strptime(sys.argv[1], "%Y-%m-%d-%H-%M")
 else:
@@ -46,7 +44,7 @@ def compute_physics_and_save(ds, save_path):
     dataset, saved as a pickled dict."""
     winds = phys_utils.geostrophic_ageostrophic_winds_and_ratio(ds, geo_threshold=geo_threshold)
     results_dict = phys_utils.calculate_divergence_vorticity_ratio_from_fields(
-        ds, lat_cut=None, pole_cut=pole_cut, vort_threshold=vort_threshold)
+        ds, pole_cut=pole_cut, vort_threshold=vort_threshold)
 
     result = {
         'u_geo': winds['u_geo'],

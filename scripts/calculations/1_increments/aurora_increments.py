@@ -1,19 +1,18 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% Imports
+"""Aurora increments of the tuned (translated) intermediate decodings.
+
+From the decodings after each (part, stage, block) (data/intermediate_decodings/tuned/aurora/)
+computes the encoder residual (encoder_output decoding minus X_t) and the 48
+block-to-block increments (block N minus block N-1, in the order encoder stages
+0, 1, 2, decoder stages 0, 1, 2). Saved to results/<mode>/increments/aurora/.
+"""
+import os
+import sys
 from datetime import datetime, timedelta
 
 import xarray as xr
 
-# %% Aurora increments of the tuned (translated) intermediate decodings
-# From the decodings after each (part, stage, block) (data/intermediate_decodings/tuned/aurora/)
-# computes the encoder residual (encoder_output decoding minus X_t) and the 48
-# block-to-block increments (block N minus block N-1, in the order encoder stages
-# 0, 1, 2, decoder stages 0, 1, 2). Saved to results/<mode>/increments/aurora/.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 
 path_aurora_tuned_intermediate_outputs = f"{config.DECODINGS_DIR}/tuned/aurora/"
 path_aurora_tuned_increments = f"{config.RESULTS_DIR}/increments/aurora/"
@@ -37,12 +36,8 @@ for (part, stage), n_blocks in stage_blocks.items():
 aurora_keys = [key for key, part, stage, block in grid]
 key_to_parts = {key: (part, stage, block) for key, part, stage, block in grid}
 
-# %% Dates (forecast valid times): 10th of every month in 2020 at 00, 06, 12, 18 UTC
-prediction_times = [
-    datetime(2020, month, 10, hour)
-    for month in range(1, 13)
-    for hour in (0, 6, 12, 18)
-]
+# %% Dates: 10th of every month in 2020 at 00, 06, 12, 18 UTC
+prediction_times = config.DATES_48
 
 # Optional argument: one target date, as index 0-47 or as "%Y-%m-%d-%H-%M" (default: all 48 dates)
 if len(sys.argv) > 1:

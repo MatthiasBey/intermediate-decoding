@@ -1,28 +1,26 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% IMPORTS
+"""ERA5 at the forecast valid time, rescaled per total wavenumber l to the power spectrum
+of each model's final forecast (sqrt of the power ratio model / ERA5), and
+reconstructed on the ERA5 grid with u, v from the scaled divergence and vorticity. Also
+reconstructs the unscaled forecasts and ERA5 the same way. Input: spectral files of
+calculations/4_spectral_filtering/1_filter_intermediate_decodings.py. Output:
+results/<mode>/spectrally_scaled_era5/<date>/.
+
+sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M", default: config.SINGLE_DATE)
+"""
 import datetime
+import os
 import subprocess
+import sys
+
 import xarray as xr
 import numpy as np
 
-
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 import utils.spectral_filter_for_xarray_fields_using_cdo as spectral_filt
 import utils.load_data as load_data
 
 # %% CONFIG
-# ERA5 at the forecast valid time, rescaled per total wavenumber l to the power spectrum
-# of each model's final forecast (sqrt of the power ratio model / ERA5), and
-# reconstructed on the ERA5 grid with u, v from the scaled divergence and vorticity. Also
-# reconstructs the unscaled forecasts and ERA5 the same way. Input: spectral files of
-# calculations/4_spectral_filtering/1_filter_intermediate_decodings.py. Output:
-# results/<mode>/spectrally_scaled_era5/<date>/.
-#
-# sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M", default: config.SINGLE_DATE)
 if len(sys.argv) > 1:
     analysis_datetime = datetime.datetime.strptime(sys.argv[1], "%Y-%m-%d-%H-%M")
 else:
@@ -165,44 +163,42 @@ reference_dataset.to_netcdf(file_reg_era5)
 print("=== Reconstructing ERA5-scaled-to-Arches (onto Arches's own native grid) ===")
 filtered_file = os.path.join(output_path, "ref_ds_arches_scaled_field.nc")
 ref_scaled_arches.to_netcdf(filtered_file)
-recon_arches = spectral_filt.reconstruct(filtered_file, arches_native_grid_template, temp_folder=temp_folder,
-                                         output_path=output_path, name="ref_ds_arches_scaled_reconstructed", dv2uv=True)
+spectral_filt.reconstruct(filtered_file, arches_native_grid_template, temp_folder=temp_folder,
+                          output_path=output_path, name="ref_ds_arches_scaled_reconstructed", dv2uv=True)
 
-recon_gc = {}
 for v in gc_versions:
     print(f"=== Reconstructing ERA5-scaled-to-GraphCast-{v} ===")
     filtered_file = os.path.join(output_path, f"ref_ds_gc_{v}_scaled_field.nc")
     ref_scaled_gc[v].to_netcdf(filtered_file)
-    recon_gc[v] = spectral_filt.reconstruct(filtered_file, file_reg_era5, temp_folder=temp_folder,
-                                            output_path=output_path, name=f"ref_ds_gc_{v}_scaled_reconstructed", dv2uv=True)
+    spectral_filt.reconstruct(filtered_file, file_reg_era5, temp_folder=temp_folder,
+                              output_path=output_path, name=f"ref_ds_gc_{v}_scaled_reconstructed", dv2uv=True)
 
 print("=== Reconstructing ERA5-scaled-to-Aurora ===")
 filtered_file = os.path.join(output_path, "ref_ds_aurora_scaled_field.nc")
 ref_scaled_aurora.to_netcdf(filtered_file)
-recon_aurora = spectral_filt.reconstruct(filtered_file, file_reg_era5, temp_folder=temp_folder,
-                                         output_path=output_path, name="ref_ds_aurora_scaled_reconstructed", dv2uv=True)
+spectral_filt.reconstruct(filtered_file, file_reg_era5, temp_folder=temp_folder,
+                          output_path=output_path, name="ref_ds_aurora_scaled_reconstructed", dv2uv=True)
 
 # %% reconstruct the unscaled forecasts and ERA5 in the same way (ERA5 grid,
 # ArchesWeather on its own grid), with sd/svo from the spectral transform, for
 # 2_compute_balances_full_forecast.py
 
 print("=== Reconstructing Arches' own forecast (onto Arches's own native grid) ===")
-recon_arches_own = spectral_filt.reconstruct(arches_spectral_path, arches_native_grid_template, temp_folder=temp_folder,
-                                             output_path=output_path, name="ds_arches_own_reconstructed", dv2uv=True)
+spectral_filt.reconstruct(arches_spectral_path, arches_native_grid_template, temp_folder=temp_folder,
+                          output_path=output_path, name="ds_arches_own_reconstructed", dv2uv=True)
 
-recon_gc_own = {}
 for v in gc_versions:
     print(f"=== Reconstructing GraphCast {v}'s own forecast ===")
-    recon_gc_own[v] = spectral_filt.reconstruct(gc_spectral_paths[v], file_reg_era5, temp_folder=temp_folder,
-                                                output_path=output_path, name=f"ds_gc_{v}_own_reconstructed", dv2uv=True)
+    spectral_filt.reconstruct(gc_spectral_paths[v], file_reg_era5, temp_folder=temp_folder,
+                              output_path=output_path, name=f"ds_gc_{v}_own_reconstructed", dv2uv=True)
 
 print("=== Reconstructing Aurora's own forecast ===")
-recon_aurora_own = spectral_filt.reconstruct(aurora_spectral_path, file_reg_era5, temp_folder=temp_folder,
-                                             output_path=output_path, name="ds_aurora_own_reconstructed", dv2uv=True)
+spectral_filt.reconstruct(aurora_spectral_path, file_reg_era5, temp_folder=temp_folder,
+                          output_path=output_path, name="ds_aurora_own_reconstructed", dv2uv=True)
 
 print("=== Reconstructing ERA5's own (unscaled) field ===")
-recon_ref_own = spectral_filt.reconstruct(sp_ref[0], file_reg_era5, temp_folder=temp_folder,
-                                          output_path=output_path, name="ds_ref_own_reconstructed", dv2uv=True)
+spectral_filt.reconstruct(sp_ref[0], file_reg_era5, temp_folder=temp_folder,
+                          output_path=output_path, name="ds_ref_own_reconstructed", dv2uv=True)
 
 # %% cleanup
 

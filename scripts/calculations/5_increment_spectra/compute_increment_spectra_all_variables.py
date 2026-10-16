@@ -1,38 +1,35 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% IMPORTS
+"""Increment spectra for plots/supplement/increment_spectra_all_variables.py: as in
+compute_increment_spectra_geopot_u10m.py, but as scalar spectra of every output
+variable (pressure-level variables at 500 hPa and all surface variables; static
+fields are skipped). Per model and layer k, the power per total wavenumber l of
+
+  '_incr'  c_k - c_{k-1}, c_{-1} = c_Xt   increment of layer k (k = 0: residual Enc - X_t)
+  '_acc'   c_k - c_Xt                     accumulated change up to and including layer k
+
+with power per l = sum_m w_m |c_l^m|^2 (w_m = 1 for m = 0, 2 for m > 0). All
+variables are transformed here from the intermediate decoding files (conservative
+remap to a Gaussian grid, gp2sp,linear): N320 for GraphCast and Aurora, N60 (T119)
+for ArchesWeather. Aurora's pres_msl is converted from hPa to Pa.
+
+Output: one netCDF per model with dims (ilayer, l) in results/<mode>/spectra/<date>/,
+variables <var>_incr and <var>_acc with <var> = <name>_500 for pressure-level
+variables and <name> for surface variables.
+
+sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M"), required.
+"""
 import datetime
+import os
 import subprocess
+import sys
 
 import numpy as np
 import xarray as xr
 
-
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 import utils.spectral_filter_for_xarray_fields_using_cdo as spectral_filt
 
 # %% CONFIG
-# sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M"), required.
-#
-# Increment spectra for plots/supplement/increment_spectra_all_variables.py: as in
-# compute_increment_spectra_geopot_u10m.py, but as scalar spectra of every output
-# variable (pressure-level variables at 500 hPa and all surface variables; static
-# fields are skipped). Per model and layer k, the power per total wavenumber l of
-#
-#   '_incr'  c_k - c_{k-1}, c_{-1} = c_Xt   increment of layer k (k = 0: residual Enc - X_t)
-#   '_acc'   c_k - c_Xt                     accumulated change up to and including layer k
-#
-# with power per l = sum_m w_m |c_l^m|^2 (w_m = 1 for m = 0, 2 for m > 0). All
-# variables are transformed here from the intermediate decoding files (conservative
-# remap to a Gaussian grid, gp2sp,linear): N320 for GraphCast and Aurora, N60 (T119)
-# for ArchesWeather. Aurora's pres_msl is converted from hPa to Pa.
-#
-# Output: one netCDF per model with dims (ilayer, l) in results/<mode>/spectra/<date>/,
-# variables <var>_incr and <var>_acc with <var> = <name>_500 for pressure-level
-# variables and <name> for surface variables.
 if len(sys.argv) < 2:
     raise ValueError("Usage: python compute_increment_spectra_all_variables.py <date>")
 DATE = sys.argv[1]

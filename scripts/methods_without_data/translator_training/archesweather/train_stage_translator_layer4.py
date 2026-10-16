@@ -1,9 +1,5 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
+import os
+import sys
 import numpy as np
 import torch
 import torch.nn as nn
@@ -11,6 +7,9 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import glob
 import psutil
 from datetime import datetime
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))  # scripts/
+import config
 
 # ---------------------------
 # 0. Stage translator: maps the input of layer4.blocks.0 (stored in separate

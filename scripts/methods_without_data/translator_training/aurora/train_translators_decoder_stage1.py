@@ -1,10 +1,11 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %%
+"""Translators for the Aurora decoder stage 1 latents (x_32 ... x_40, 1024 channels).
+
+Usage: python train_translators_decoder_stage1.py <model_id>
+Maps x_<model_id> to the output of decoder stage 1 (x_41).
+Trained in float32 (float16 gave NaN losses); early stopping on the val loss.
+"""
+import os
+import sys
 import psutil
 import numpy as np
 import torch
@@ -12,14 +13,8 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, random_split
 from datetime import datetime
 
-'''
-Translators for the Aurora decoder stage 1 latents (x_32 ... x_40, 1024 channels).
-
-Usage: python train_translators_decoder_stage1.py <model_id>
-Maps x_<model_id> to the output of decoder stage 1 (x_41).
-Trained in float32 (float16 gave NaN losses); early stopping on the val loss.
-'''
-
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))  # scripts/
+import config
 
 # %% Configuration
 
@@ -78,7 +73,7 @@ def load_latents_for_timestamp(data_dir, step, dt):
     # mmap avoids copying large arrays
     with np.load(path, mmap_mode="r") as data:
         x = data[f"x_{step}"]
-        y = data[f"x_41"]  # target: output of decoder stage 1
+        y = data["x_41"]  # target: output of decoder stage 1
     return x, y
 
 # %% Dataset
@@ -235,7 +230,7 @@ for epoch in range(start_epoch, start_epoch + max_epochs):
     print_ram_usage(f"Before epoch {epoch+1}")
 
     for xb, yb in train_loader:
-        print_ram_usage(f"Loading a batch for training")
+        print_ram_usage("Loading a batch for training")
         xb = xb.to(device, dtype=torch.float32)
         yb = yb.to(device, dtype=torch.float32)
 
@@ -246,7 +241,7 @@ for epoch in range(start_epoch, start_epoch + max_epochs):
         optimizer.step()
 
         train_loss += loss.item() * xb.size(0)
-        print_ram_usage(f"After processing a batch for training (takes longer or shorter then loading? check if this is the bottleneck)")
+        print_ram_usage("After processing a batch for training")
         log_print(f"Train loss: {loss}")
 
     train_loss /= train_size
@@ -322,7 +317,6 @@ log_print("Training complete.")
 # Restore the weights with the lowest val loss
 if best_state_dict is not None:
     model.load_state_dict(best_state_dict)
-
 
 
 # %% Save final matrix

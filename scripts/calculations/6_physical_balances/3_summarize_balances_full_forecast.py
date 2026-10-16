@@ -1,20 +1,19 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% IMPORTS
+"""Extracts the mean ratios per pressure level (mean_ratio_ageo_geo_extratropics,
+mean_ratio_div_vort) from the large pkls of 2_compute_balances_full_forecast.py
+into one small pkl per date in results/<mode>/balances_full_forecast_summary/,
+used by plots/main/physical_balances.py.
+
+sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M"), required.
+"""
 import datetime
+import os
 import pickle
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 
 # %% CONFIG
-# sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M"), required.
-#
-# Extracts the mean ratios per pressure level (mean_ratio_ageo_geo_extratropics,
-# mean_ratio_div_vort) from the large pkls of 2_compute_balances_full_forecast.py
-# into one small pkl per date in results/<mode>/balances_full_forecast_summary/,
-# used by plots/main/physical_balances.py.
 if len(sys.argv) < 2:
     raise ValueError("Usage: python 3_summarize_balances_full_forecast.py <date>")
 analysis_datetime = datetime.datetime.strptime(sys.argv[1], "%Y-%m-%d-%H-%M")

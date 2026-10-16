@@ -1,138 +1,55 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% Imports
+"""Spectra of the 500 hPa geopotential and 10 m u-wind increments per layer (layer 0: Enc - X_t,
+layer k: state_k - state_{k-1}), averaged over config.DATES, with the spectral centroid as a
+line. Rows: variables, columns: models. Input: the increment spectra of
+calculations/5_increment_spectra/compute_increment_spectra_geopot_u10m.py."""
+import os
+import sys
 
 import matplotlib
 matplotlib.use("Agg")  # no display needed
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from matplotlib.ticker import MaxNLocator
 import numpy as np
-import pandas as pd
-import xarray as xr
 
-# %% Settings
-# Spectra of the 500 hPa geopotential and 10 m u-wind increments per layer (layer 0:
-# Enc - X_t, layer k: state_k - state_{k-1}), averaged over config.DATES, with the
-# spectral centroid as a line. Rows: variables, columns: models.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
+from utils.increment_spectra import NORM_LABELS, draw_spectra, load_mean_spectra, normalize
 
-# increment spectra per model and date, from
-# calculations/5_increment_spectra/compute_increment_spectra_geopot_u10m.py
-models = ['graphcast', 'aurora', 'arches']
-caselist = [pd.Timestamp(d) for d in config.DATES]
-datafile = f"{config.RESULTS_DIR}/spectra/%Y-%m-%d-%H-00/12_0_increment_spectra_#model_500hPa.nc"
+MODELS = {'graphcast': 'GraphCast', 'aurora': 'Aurora', 'arches': 'ArchesWeather'}
+DATA_FILE = f"{config.RESULTS_DIR}/spectra/%Y-%m-%d-%H-00/12_0_increment_spectra_#model_500hPa.nc"
+NORMALIZATION = 'log'  # see utils/increment_spectra.py; the centroid is always computed from P(l)
 
-# normalization:
-# 'std': P(l) itself
-# 'log': l*P(l), power per logarithmic wavenumber interval (variance-preserving
-#        form for the log-l axis: sum_l P(l) = integral of l*P(l) dln(l))
-# 'ed': relative to the encoder-decoder increment
-# The color scale is logarithmic and the centroid is computed from P(l) in all cases.
-normalization = 'log'
+# variables to plot (available: geopot, u_10m, div, vo, ke, each with _incr and _acc)
+PLOT_VARS = {'geopot_incr': '500 hPa Geopotential', 'u_10m_incr': '10 m u-wind'}
 
-figdir = config.FIGURES_DIR
+# colour range per variable: these percentiles of all plotted values (all models, l > 0)
+CLIP_PERCENTILES = (0.2, 99.8)
 
-# variables to plot and display names
-# (available: geopot, u_10m, div, vo, ke, each with _incr and _acc; plev variables at 500 hPa)
-plotvars = ['geopot_incr', 'u_10m_incr']
-varnames = {'geopot_incr': '500 hPa Geopotential', 'u_10m_incr': '10 m u-wind',
-            'div_incr': '500 hPa Divergence', 'vo_incr': '500 hPa Vorticity', 'ke_incr': '500 hPa Kinetic Energy',
-            'geopot_acc': '500 hPa Geopotential', 'u_10m_acc': '10 m u-wind',
-            'div_acc': '500 hPa Divergence', 'vo_acc': '500 hPa Vorticity', 'ke_acc': '500 hPa Kinetic Energy'}
-modelnames = {'graphcast': 'GraphCast', 'aurora': 'Aurora', 'arches': 'ArchesWeather'}
+spectra = {model: load_mean_spectra(DATA_FILE, model) for model in MODELS}
+normalized = {var: {model: normalize(spectra[model][var], NORMALIZATION) for model in MODELS} for var in PLOT_VARS}
 
-# colormap, centroid line and background where a model has no modes (ArchesWeather l > 119)
-cmap = 'jet'
-centroid_kw = {'color': 'black', 'linewidth': 1.0}
-nomodes_color = 'white'
-
-# color range per variable: these percentiles of all plotted values (all models, l > 0);
-# None = full range
-clip_percentiles = (0.2, 99.8)
-
-# colorbar labels for the different normalizations
-normlabels = {'std': 'power', 'log': r'$\ell\,P(\ell)$', 'ed': 'ratio to layer 0'}
-
-def load_spectra(model):
-    """Increment spectra of a model, averaged over all dates."""
-    sp_list = [xr.open_dataset(case.strftime(datafile.replace('#model', model))).drop_vars('plev', errors='ignore')
-               for case in caselist]
-    return xr.concat(sp_list, dim='case').mean('case')
-
-def normalize(sp):
-    """Normalize the spectra according to the normalization setting."""
-    if normalization=='std':
-        return sp
-    elif normalization=='log':
-        return sp * sp.l
-    elif normalization=='ed':
-        return sp / sp.sel(ilayer=0)
-    else:
-        raise ValueError(f"normalization '{normalization}' not implemented")
-
-def centroid(sp):
-    """Spectral centroid (power-weighted mean wavenumber), excluding the global mean l=0."""
-    sp = sp.where(sp.l > 0)
-    return (sp * sp.l).sum('l') / sp.sum('l')
-
-def layer_ticks(nlast):
-    """Evenly spaced layer ticks from 0 to the last layer nlast."""
-    for nint in [4, 5, 3, 6]:
-        if nlast % nint == 0:
-            return np.arange(0, nlast + 1, nlast // nint)
-    # no even spacing possible: integer ticks below the last layer plus the last layer
-    ticks = MaxNLocator(4, integer=True).tick_values(0, nlast)
-    return np.append(ticks[ticks <= nlast - (ticks[1] - ticks[0]) / 2], nlast)
-
-os.makedirs(figdir, exist_ok=True)
-
-# %% Data
-sp_models = {model: load_spectra(model) for model in models}
-
-# common color scale for all models of a variable (global mean l=0 excluded)
-spnorm = {var: {model: normalize(sp_models[model][var]) for model in models} for var in plotvars}
 
 def color_norm(var):
-    """Log color scale over all models of a variable, clipped at clip_percentiles."""
-    v = np.concatenate([spnorm[var][model].where(spnorm[var][model].l > 0).values.ravel() for model in models])
-    v = v[np.isfinite(v) & (v > 0)]
-    vmin, vmax = np.percentile(v, clip_percentiles) if clip_percentiles else (v.min(), v.max())
+    """Log colour scale shared by all models, clipped at CLIP_PERCENTILES."""
+    values = np.concatenate([normalized[var][model].where(normalized[var][model].l > 0).values.ravel()
+                             for model in MODELS])
+    values = values[np.isfinite(values) & (values > 0)]
+    vmin, vmax = np.percentile(values, CLIP_PERCENTILES)
     return LogNorm(vmin=vmin, vmax=vmax)
 
-norms = {var: color_norm(var) for var in plotvars}
 
-# common wavenumber range for all models
-lmax = max(int(sp_models[model].l.max()) for model in models)
+lmax = max(int(spectra[model].l.max()) for model in MODELS)  # common wavenumber axis
 
-def draw_panel(ax, model, var):
-    """Spectra as a function of layer and wavenumber plus the spectral centroid; returns the mesh."""
-    sp = sp_models[model][var]
-    pcm = ax.pcolormesh(sp.ilayer, sp.l, spnorm[var][model].transpose('l', 'ilayer'), cmap=cmap, norm=norms[var])
-    ax.plot(sp.ilayer, centroid(sp), **centroid_kw)
-    ax.set_yscale('log')
-    ax.set_ylim(1, lmax)
-    # background where the model has no modes
-    ax.set_facecolor(nomodes_color)
-    ax.set_xticks(layer_ticks(int(sp.ilayer.max())))
-    return pcm
-
-# %% Plot
-
-fig, axs = plt.subplots(len(plotvars), len(models), figsize=(8, 4.4), sharex='col', sharey=True,
+fig, axs = plt.subplots(len(PLOT_VARS), len(MODELS), figsize=(8, 4.4), sharex='col', sharey=True,
                         constrained_layout=True, squeeze=False)
-
-for irow, var in enumerate(plotvars):
-    for icol, model in enumerate(models):
-        ax = axs[irow, icol]
-        pcm = draw_panel(ax, model, var)
-        if irow == 0:
-            ax.set_title(modelnames[model])
-    fig.colorbar(pcm, ax=axs[irow, :], label=f"{varnames[var]}\n{normlabels[normalization]}",
-                 pad=0.01, aspect=15, extend='both' if clip_percentiles and tuple(clip_percentiles) != (0, 100) else 'neither')
+for row, (var, var_name) in enumerate(PLOT_VARS.items()):
+    norm = color_norm(var)
+    for col, (model, model_name) in enumerate(MODELS.items()):
+        pcm = draw_spectra(axs[row, col], spectra[model][var], normalized[var][model], norm, lmax)
+        if row == 0:
+            axs[row, col].set_title(model_name)
+    fig.colorbar(pcm, ax=axs[row, :], label=f"{var_name}\n{NORM_LABELS[NORMALIZATION]}",
+                 pad=0.01, aspect=15, extend='both')
 
 # one axis label for all panels, centred on the panels without the colorbars
 fig.supylabel('wavenumber l', fontsize=plt.rcParams['axes.labelsize'])
@@ -140,7 +57,7 @@ xlabel = fig.supxlabel('increment', fontsize=plt.rcParams['axes.labelsize'])
 fig.canvas.draw()
 xlabel.set_x((axs[0, 0].get_position().x0 + axs[0, -1].get_position().x1) / 2)
 
-fname = os.path.join(figdir, f"increment_spectra_geopot_u_10m_{config.DATES_TAG}.png")
-fig.savefig(fname, dpi=300)
+save_path = os.path.join(config.FIGURES_DIR, f"increment_spectra_geopot_u_10m_{config.DATES_TAG}.png")
+fig.savefig(save_path, dpi=300)
 plt.close(fig)
-print(f"Saved {fname}")
+print(f"Saved {save_path}")

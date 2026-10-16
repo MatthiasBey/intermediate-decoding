@@ -1,24 +1,21 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% IMPORTS
+"""Same metrics as compute_balances_intermediate_decodings.py for the band-filtered ERA5
+fields of calculations/4_spectral_filtering/2_filter_era5.py (ERA5 reference lines in
+plots/main/physical_balances_500hPa.py). Writes one pkl per date to
+results/<mode>/balances_era5_scale_separated/; existing dates are skipped.
+
+sys.argv[1:] = forecast valid times ("%Y-%m-%d-%H-%M"), default: config.DATES
+"""
+import os
 import pickle
+import sys
 
 import xarray as xr
 
-
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 import utils.physical_consistency_functions as phys_utils
 
 # %% CONFIG
-# sys.argv[1:] = forecast valid times ("%Y-%m-%d-%H-%M"), default: config.DATES
-#
-# Same metrics as compute_balances_intermediate_decodings.py for the band-filtered ERA5
-# fields of calculations/4_spectral_filtering/2_filter_era5.py (ERA5 reference lines in
-# plots/main/physical_balances_500hPa.py). Writes one pkl per date to
-# results/<mode>/balances_era5_scale_separated/; existing dates are skipped.
 DATES_48 = [d.strftime("%Y-%m-%d-%H-%M") for d in config.DATES]
 time_strs = sys.argv[1:] if len(sys.argv) > 1 else DATES_48
 
@@ -37,7 +34,7 @@ def compute_metrics(path):
     ds = xr.open_dataset(path).load()
     winds = phys_utils.geostrophic_ageostrophic_winds_and_ratio(ds, geo_threshold=geo_threshold, pole_cut=pole_cut)
     div_vort = phys_utils.calculate_divergence_vorticity_ratio_from_fields(
-        ds, lat_cut=None, pole_cut=pole_cut, vort_threshold=vort_threshold)
+        ds, pole_cut=pole_cut, vort_threshold=vort_threshold)
     ageo_geo = winds['mean_ratio_ageo_geo_extratropics']
     metrics = {
         'mean_ratio_ageo_geo_extratropics': ageo_geo.values,

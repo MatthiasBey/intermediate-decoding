@@ -1,9 +1,5 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
+import os
+import sys
 import numpy as np
 import torch
 import torch.nn as nn
@@ -11,6 +7,9 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import glob
 import psutil
 from datetime import datetime
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))  # scripts/
+import config
 
 # ---------------------------
 # 0. Command line argument
@@ -28,7 +27,6 @@ list_of_tuples = [
     [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5],
     [3, 6], [3, 7], [3, 8], [3, 9], [3, 10],
 ]
-
 
 
 layer_x, block_x = list_of_tuples[model_id]

@@ -1,18 +1,17 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% Imports
+"""GraphCast increments of the tuned intermediate decodings.
+
+From the decodings after each GNN processor step (data/intermediate_decodings/tuned/graphcast/)
+computes the encoder residual (gnnsteps_0 decoding minus X_t) and the 16 step-to-step
+increments (step N minus step N-1). Saved to results/<mode>/increments/graphcast/.
+"""
+import os
+import sys
 from datetime import datetime
 
 import xarray as xr
 
-# %% GraphCast increments of the tuned intermediate decodings
-# From the decodings after each GNN processor step (data/intermediate_decodings/tuned/graphcast/)
-# computes the encoder residual (gnnsteps_0 decoding minus X_t) and the 16 step-to-step
-# increments (step N minus step N-1). Saved to results/<mode>/increments/graphcast/.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 
 current_version = 'std'
 
@@ -23,11 +22,7 @@ os.makedirs(path_gc_tuned_increments, exist_ok=True)
 gnn_steps = range(0, 17)
 
 # %% Dates: 10th of every month in 2020 at 00, 06, 12, 18 UTC
-prediction_times = [
-    datetime(2020, month, 10, hour)
-    for month in range(1, 13)
-    for hour in (0, 6, 12, 18)
-]
+prediction_times = config.DATES_48
 
 # Optional argument: one date, as index 0-47 or as "%Y-%m-%d-%H-%M" (default: all 48 dates)
 if len(sys.argv) > 1:

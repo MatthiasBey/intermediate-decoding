@@ -40,7 +40,7 @@ forecast. Their figure names end in that date. The other scripts take no argumen
 | `latent_channel_aurora.py`, `…_arches.py` | One latent channel, untranslated and translated | latent states and translators in `data/` |
 
 The latent-channel scripts show channel 100 at one level; to show a different channel or level, change
-`paper_channels` and `level_indices` at the top of the script. These figures are saved at 150 dpi
+`CHANNEL` and `LEVEL` at the top of the script. These figures are saved at 150 dpi
 with a 256-colour palette to keep the files small.
 
 ## tables

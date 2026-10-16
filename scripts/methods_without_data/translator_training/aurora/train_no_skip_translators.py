@@ -1,19 +1,4 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %%
-import psutil
-import numpy as np
-import torch
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader, random_split
-from datetime import datetime
-
-'''
-Translators from the coarser Aurora stages directly to the backbone output.
+"""Translators from the coarser Aurora stages directly to the backbone output.
 
 Usage: python train_no_skip_translators.py <model_id>
 model_id indexes all blocks of encoder stages 1 and 2 and decoder stages 0 and 1
@@ -21,7 +6,18 @@ model_id indexes all blocks of encoder stages 1 and 2 and decoder stages 0 and 1
 the same resolution; these instead map directly to the final backbone output
 concat(x_47, x_5) (180 x 360 grid, 1024 channels), so the translator also
 learns the spatial upsampling (UpscaleTranslator).
-'''
+"""
+import os
+import sys
+import psutil
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader, random_split
+from datetime import datetime
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))  # scripts/
+import config
 
 # %% Configuration
 
@@ -105,8 +101,8 @@ def load_latents_for_timestamp(data_dir, source_key, dt):
     # mmap avoids copying large arrays
     with np.load(path, mmap_mode="r") as data:
         x = data[source_key]
-        y1 = data[f"x_5"]
-        y2 = data[f"x_47"]
+        y1 = data["x_5"]
+        y2 = data["x_47"]
         y = np.concatenate([y2, y1], axis=2)  # target: backbone output, concat(x_47, x_5) along channels
     return x, y
 

@@ -1,32 +1,30 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% IMPORTS
-# Per-date pattern correlations and amplitude ratios between the three increments shown
-# in plots/main/encoder_decoder.py, for all variables (helpers in
-# utils/encoder_decoder_similarity.py):
-#
-#   input   = X^t - X^{t-1}            (input difference, ERA5)
-#   encdec  = X^{t+1}_0 - X^t          (encoder-decoder increment, latent state 0)
-#   full    = X^{t+1}_N - X^t          (full prediction increment, final latent state)
-#
-# Variables: see utils/encoder_decoder_similarity.py. Aurora's pres_msl is converted from
-# hPa to Pa. For precipitation (an accumulation) encdec and full are the predicted 6 h
-# accumulations and input is the ERA5 accumulation of the previous step.
-#
-# Optional argument: number of worker processes (default 5). Writes one pkl per date in
-# config.DATES to results/<mode>/encoder_decoder_similarity/ (existing dates are skipped);
-# plots/tables/encoder_decoder_pattern_correlation.py makes the table from them.
+"""Per-date pattern correlations and amplitude ratios between the three increments shown
+in plots/main/encoder_decoder.py, for all variables (helpers in
+utils/encoder_decoder_similarity.py):
+
+  input   = X^t - X^{t-1}            (input difference, ERA5)
+  encdec  = X^{t+1}_0 - X^t          (encoder-decoder increment, latent state 0)
+  full    = X^{t+1}_N - X^t          (full prediction increment, final latent state)
+
+Variables: see utils/encoder_decoder_similarity.py. Aurora's pres_msl is converted from
+hPa to Pa. For precipitation (an accumulation) encdec and full are the predicted 6 h
+accumulations and input is the ERA5 accumulation of the previous step.
+
+Optional argument: number of worker processes (default 5). Writes one pkl per date in
+config.DATES to results/<mode>/encoder_decoder_similarity/ (existing dates are skipped);
+plots/tables/encoder_decoder_pattern_correlation.py makes the table from them.
+"""
 import datetime
 import multiprocessing
+import os
 import pickle
+import sys
 
 import numpy as np
 import xarray as xr
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 import utils.encoder_decoder_similarity as sim
 from utils.encoder_decoder_similarity import MODEL_VARS, PRECIP
 

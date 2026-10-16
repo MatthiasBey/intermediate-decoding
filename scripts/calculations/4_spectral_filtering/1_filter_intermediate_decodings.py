@@ -1,24 +1,22 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% IMPORTS
+"""Spectral transform of geopot, u, v (all pressure levels) of all tuned
+intermediate decodings of one forecast, and the reconstruction in two wavenumber
+bands (planetary/synoptic l <= 20, meso l >= 21). Output: results/<mode>/spectral_filtering/<model>/<date>/.
+
+sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M", default: config.SINGLE_DATE)
+sys.argv[2] = model ('arches', 'graphcast', 'aurora', or 'all', default 'all')
+"""
 import datetime
+import os
 import subprocess
+import sys
+
 import xarray as xr
 
-
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 import utils.spectral_filter_for_xarray_fields_using_cdo as spectral_filt
 
 # %% CONFIG
-# Spectral transform of geopot, u, v (all pressure levels) of all tuned
-# intermediate decodings of one forecast, and the reconstruction in two wavenumber
-# bands (planetary/synoptic l <= 20, meso l >= 21). Output: results/<mode>/spectral_filtering/<model>/<date>/.
-#
-# sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M", default: config.SINGLE_DATE)
-# sys.argv[2] = model ('arches', 'graphcast', 'aurora', or 'all', default 'all')
 valid_models = ('arches', 'graphcast', 'aurora', 'all')
 
 if len(sys.argv) > 1:

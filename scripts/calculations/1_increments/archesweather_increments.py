@@ -1,19 +1,18 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% Imports
+"""ArchesWeather increments of the tuned intermediate decodings.
+
+From the decodings after each (layer, block) (data/intermediate_decodings/tuned/archesweather/)
+computes the encoder residual (layer_0_block_0 decoding minus X_t) and the 32
+block-to-block increments (block N minus block N-1). Saved to
+results/<mode>/increments/archesweather/.
+"""
+import os
+import sys
 from datetime import datetime
 
 import xarray as xr
 
-# %% ArchesWeather increments of the tuned intermediate decodings
-# From the decodings after each (layer, block) (data/intermediate_decodings/tuned/archesweather/)
-# computes the encoder residual (layer_0_block_0 decoding minus X_t) and the 32
-# block-to-block increments (block N minus block N-1). Saved to
-# results/<mode>/increments/archesweather/.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 
 path_arches_tuned_intermediate_outputs = f"{config.DECODINGS_DIR}/tuned/archesweather/"
 path_arches_tuned_increments = f"{config.RESULTS_DIR}/increments/archesweather/"
@@ -22,11 +21,7 @@ os.makedirs(path_arches_tuned_increments, exist_ok=True)
 blocks_per_layer = {0: 1, 1: 4, 2: 12, 3: 12, 4: 4}
 
 # %% Dates: 10th of every month in 2020 at 00, 06, 12, 18 UTC
-prediction_times = [
-    datetime(2020, month, 10, hour)
-    for month in range(1, 13)
-    for hour in (0, 6, 12, 18)
-]
+prediction_times = config.DATES_48
 
 # Optional argument: one date, as index 0-47 or as "%Y-%m-%d-%H-%M" (default: all 48 dates)
 if len(sys.argv) > 1:

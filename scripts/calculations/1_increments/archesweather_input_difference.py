@@ -1,30 +1,23 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% Imports
+"""ArchesWeather input difference.
+
+ERA5 difference between the two ArchesWeather input states (24 h apart),
+X(t-24h) - X(t-48h) for forecast valid time t, on the native 0.25 deg grid (not
+coarsened to 1.5 deg; the spectral transform remaps it). Saved to
+results/<mode>/increments/archesweather/diff_input_<date>.nc.
+"""
+import os
+import sys
 from datetime import datetime, timedelta
 
-
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 import utils.load_data as load_data
-
-# %% ArchesWeather input difference
-# ERA5 difference between the two ArchesWeather input states (24 h apart),
-# X(t-24h) - X(t-48h) for forecast valid time t, on the native 0.25 deg grid (not
-# coarsened to 1.5 deg; the spectral transform remaps it). Saved to
-# results/<mode>/increments/archesweather/diff_input_<date>.nc.
 
 path_arches_tuned_increments = f"{config.RESULTS_DIR}/increments/archesweather/"
 os.makedirs(path_arches_tuned_increments, exist_ok=True)
 
 # %% Dates: 10th of every month in 2020 at 00, 06, 12, 18 UTC
-prediction_times = [
-    datetime(2020, month, 10, hour)
-    for month in range(1, 13)
-    for hour in (0, 6, 12, 18)
-]
+prediction_times = config.DATES_48
 
 # Optional argument: one date, as index 0-47 or as "%Y-%m-%d-%H-%M" (default: all 48 dates)
 if len(sys.argv) > 1:

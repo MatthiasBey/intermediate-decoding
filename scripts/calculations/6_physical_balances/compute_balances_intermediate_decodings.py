@@ -1,26 +1,23 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% IMPORTS
+"""Mean ageostrophic/geostrophic wind ratio (|lat| < 20 excluded) and divergence/vorticity
+ratio per pressure level for every intermediate decoding, separately for the two
+wavenumber bands of calculations/4_spectral_filtering/1_filter_intermediate_decodings.py.
+Writes one pkl per date to results/<mode>/balances_intermediate_decodings/, used by
+plots/main/physical_balances_500hPa.py.
+
+sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M"), required.
+"""
 import datetime
+import os
 import pickle
+import sys
 
 import xarray as xr
 
-
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 import utils.physical_consistency_functions as phys_utils
 
 # %% CONFIG
-# sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M"), required.
-#
-# Mean ageostrophic/geostrophic wind ratio (|lat| < 20 excluded) and divergence/vorticity
-# ratio per pressure level for every intermediate decoding, separately for the two
-# wavenumber bands of calculations/4_spectral_filtering/1_filter_intermediate_decodings.py.
-# Writes one pkl per date to results/<mode>/balances_intermediate_decodings/, used by
-# plots/main/physical_balances_500hPa.py.
 if len(sys.argv) < 2:
     raise ValueError("Usage: python compute_balances_intermediate_decodings.py <date>")
 time_str = datetime.datetime.strptime(sys.argv[1], "%Y-%m-%d-%H-%M").strftime("%Y-%m-%d-%H-%M")
@@ -53,7 +50,7 @@ def compute_metrics(path):
     ds = xr.open_dataset(path).load()
     winds = phys_utils.geostrophic_ageostrophic_winds_and_ratio(ds, geo_threshold=geo_threshold, pole_cut=pole_cut)
     div_vort = phys_utils.calculate_divergence_vorticity_ratio_from_fields(
-        ds, lat_cut=None, pole_cut=pole_cut, vort_threshold=vort_threshold)
+        ds, pole_cut=pole_cut, vort_threshold=vort_threshold)
     ageo_geo = winds['mean_ratio_ageo_geo_extratropics']
     metrics = {
         'mean_ratio_ageo_geo_extratropics': ageo_geo.values,

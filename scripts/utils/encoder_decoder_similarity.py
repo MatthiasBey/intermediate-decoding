@@ -13,9 +13,8 @@ plots/tables/encoder_decoder_pattern_correlation.py.
 import numpy as np
 import xarray as xr
 
-import config  # repository path configuration (scripts/ is on sys.path)
+import config
 
-# %% CONFIG
 PLEV = 500  # pressure level of the 3D variables
 
 # Variables: geopot, temp, qv, u, v, w (500 hPa), u_10m, v_10m, t_2m, pres_msl, and
@@ -35,8 +34,6 @@ path_era5 = config.ERA5_DIR + "/era4aim_{date}.nc"
 
 PAIRS = [("encdec", "full"), ("encdec", "input"), ("input", "full")]
 
-# %% HELPERS
-
 
 def select_2d(da):
     return da.sel(plev=PLEV) if "plev" in da.dims else da
@@ -44,7 +41,7 @@ def select_2d(da):
 
 def era5_field(when, var):
     """ERA5 on its native 0.25 deg grid (lat -90..90, lon 0..359.75)."""
-    path = path_era5.format(year=when.year, date=when.strftime("%Y-%m-%d"))
+    path = path_era5.format(date=when.strftime("%Y-%m-%d"))
     return select_2d(xr.open_dataset(path)[var].sel(time=np.datetime64(when))).load()
 
 

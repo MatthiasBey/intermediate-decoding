@@ -1,43 +1,40 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% IMPORTS
+"""Increment spectra at 500 hPa for plots/main/increment_spectra_geopot_u_10m.py. Per
+model and layer k, the power per total wavenumber l of
+
+  '_incr'  c_k - c_{k-1}, c_{-1} = c_Xt   increment of layer k (k = 0: residual Enc - X_t)
+  '_acc'   c_k - c_Xt                     accumulated change up to and including layer k
+
+for geopot, divergence (div), vorticity (vo), kinetic energy from div and vo
+(a^2 / (2 l(l+1)) * (P_div + P_vo)) and 10 m zonal wind (u_10m, scalar spectrum).
+Power per l is sum_m w_m |c_l^m|^2 (w_m = 1 for m = 0, 2 for m > 0).
+
+geopot, div and vo of the layers are read from the spectral files of
+calculations/4_spectral_filtering/1_filter_intermediate_decodings.py. X_t (time=0 of the
+decoding files: 6 h before the valid time for GraphCast and Aurora, 24 h for
+ArchesWeather) is transformed here in the same way (N320, ArchesWeather truncated at
+l = 120). Since the transform is linear, differences of coefficients are coefficients of
+differences. u_10m is transformed here from the intermediate decoding files
+(conservative remap to a Gaussian grid, gp2sp,linear): N320 for GraphCast and Aurora,
+N60 (the Gaussian grid of the 1.5 deg resolution, T119) for ArchesWeather. All
+ArchesWeather spectra end at l = 119.
+
+Output: one netCDF per model with dims (ilayer, l) in results/<mode>/spectra/<date>/.
+
+sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M"), required.
+"""
 import datetime
+import os
 import subprocess
+import sys
 
 import numpy as np
 import xarray as xr
 
-
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 import utils.spectral_filter_for_xarray_fields_using_cdo as spectral_filt
 
 # %% CONFIG
-# sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M"), required.
-#
-# Increment spectra at 500 hPa for plots/main/increment_spectra_geopot_u_10m.py. Per
-# model and layer k, the power per total wavenumber l of
-#
-#   '_incr'  c_k - c_{k-1}, c_{-1} = c_Xt   increment of layer k (k = 0: residual Enc - X_t)
-#   '_acc'   c_k - c_Xt                     accumulated change up to and including layer k
-#
-# for geopot, divergence (div), vorticity (vo), kinetic energy from div and vo
-# (a^2 / (2 l(l+1)) * (P_div + P_vo)) and 10 m zonal wind (u_10m, scalar spectrum).
-# Power per l is sum_m w_m |c_l^m|^2 (w_m = 1 for m = 0, 2 for m > 0).
-#
-# geopot, div and vo of the layers are read from the spectral files of
-# calculations/4_spectral_filtering/1_filter_intermediate_decodings.py. X_t (time=0 of the
-# decoding files: 6 h before the valid time for GraphCast and Aurora, 24 h for
-# ArchesWeather) is transformed here in the same way (N320, ArchesWeather truncated at
-# l = 120). Since the transform is linear, differences of coefficients are coefficients of
-# differences. u_10m is transformed here from the intermediate decoding files
-# (conservative remap to a Gaussian grid, gp2sp,linear): N320 for GraphCast and Aurora,
-# N60 (the Gaussian grid of the 1.5 deg resolution, T119) for ArchesWeather. All
-# ArchesWeather spectra end at l = 119.
-#
-# Output: one netCDF per model with dims (ilayer, l) in results/<mode>/spectra/<date>/.
 if len(sys.argv) < 2:
     raise ValueError("Usage: python compute_increment_spectra_geopot_u10m.py <date>")
 DATE = sys.argv[1]
@@ -77,6 +74,7 @@ spec_vars = {'geopot': 'geopot', 'sd': 'div', 'svo': 'vo'}
 filtered_fields_root = f"{config.RESULTS_DIR}/spectral_filtering"
 results_root = os.path.join(f"{config.RESULTS_DIR}/spectra", DATE)
 temp_folder = f"{config.TMP_DIR}/spectral_filtering/12_0_{DATE}"
+os.makedirs(results_root, exist_ok=True)
 os.makedirs(temp_folder, exist_ok=True)
 
 # intermediate decoding files

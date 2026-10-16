@@ -1,134 +1,75 @@
-import os, sys  # find scripts/ (folder containing config.py), put it on sys.path, import path config
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-while not os.path.exists(os.path.join(_SCRIPTS_DIR, "config.py")):
-    _SCRIPTS_DIR = os.path.dirname(_SCRIPTS_DIR)
-sys.path.insert(0, _SCRIPTS_DIR)
-import config
-# %% IMPORTS
+"""Aurora version of tuned_decoding_comparison_arches.py (supplement): relative MSE (vs. 6 h
+persistence) of the tuned decodings with skip translators (solid) and with the upscale
+translators without skip connections (dashed). Upscale translators exist for encoder stages 1
+and 2 and decoder stages 0 and 1; encoder stage 0 and decoder stage 2 are already at full
+resolution and are shown tuned only."""
+import os
+import sys
 
-import xarray as xr
-import numpy as np
 import matplotlib
 matplotlib.use("Agg")  # no display needed
-import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import numpy as np
+import xarray as xr
 
-
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # scripts/
+import config
 import utils.load_data as load_data
 
-# Aurora version of tuned_decoding_comparison_arches.py: relative MSE (vs. 6 h persistence)
-# of the tuned decodings with skip translators ("_translated", solid) and with the upscale
-# translators without skip connections ("_upscale", dashed). Upscale translators exist for
-# enc stage 1/2 and dec stage 0/1; enc stage 0 and dec stage 2 are already at full
-# resolution and are shown tuned only.
+# Aurora files are named after the initial time (valid time - 6 h)
+analysis_datetime = config.analysis_date()  # forecast valid time, optional argument
+init_datetime = config.aurora_init_time(analysis_datetime)
+init_str = init_datetime.strftime("%Y-%m-%d-%H-%M-%S")
 
-# %% LOAD DATASETS
-# Aurora files are named after the initial time (config.aurora_init_time, valid time - 6 h)
-target_datetime = config.analysis_date()  # forecast valid time, optional argument
-fit_datetime = config.aurora_init_time(target_datetime)
-date_str = fit_datetime.strftime("%Y-%m-%d-%H-%M-%S")
+# (part, stage, number of blocks, has upscale translators) in network order
+STAGES = [("enc", 0, 6, False), ("enc", 1, 10, True), ("enc", 2, 8, True),
+          ("dec", 0, 8, True), ("dec", 1, 10, True), ("dec", 2, 6, False)]
 
-aurora_dir_tuned = f"{config.DECODINGS_DIR}/tuned/aurora/"
-aurora_dir_upscale = f"{config.DECODINGS_DIR}/no_skip/aurora/"
-AURORA_DIRS = {"_translated": aurora_dir_tuned, "_upscale": aurora_dir_upscale}
-
-# stages with upscale translators: number of blocks
-stage_blocks = {
-    ("enc", 1): 10,
-    ("enc", 2): 8,
-    ("dec", 0): 8,
-    ("dec", 1): 10,
-}
-# stages without upscale translator (tuned only)
-tuned_only_stage_blocks = {
-    ("enc", 0): 6,
-    ("dec", 2): 6,
-}
+# colours per variable as in plots/main/relative_mse_all_variables.py (Aurora has no 'w' and
+# a different variable order)
+REFERENCE_VARS = ['geopot', 'temp', 'qv', 'u', 'v', 'w', 'u_10m', 'v_10m', 't_2m', 'pres_msl']
+VAR_COLORS = dict(zip(REFERENCE_VARS, cm.tab20(np.linspace(0, 1, 10))))
 
 
-def _load_decode(part, stage, block, suffix):
-    path = os.path.join(
-        AURORA_DIRS[suffix],
-        f"decoded_latent_aurora-ft_{date_str}_part-{part}_stage-{stage}_block-{block}{suffix}.nc",
-    )
-    if not os.path.isfile(path):
-        return None
+def area_weighted_mse(forecast, truth):
+    """As in calculations/2_relative_mse/compute_relative_mse.py."""
+    weights = np.cos(np.deg2rad(truth['lat']))
+    return ((forecast - truth)**2 * weights).sum(dim=['lat', 'lon']) / weights.sum(dim=['lat'])
+
+
+def load_decoding(kind, suffix, part, stage, block):
+    path = (f"{config.DECODINGS_DIR}/{kind}/aurora/"
+            f"decoded_latent_aurora-ft_{init_str}_part-{part}_stage-{stage}_block-{block}{suffix}.nc")
     ds = xr.open_dataset(path).isel(time=1).sel(plev=500)
-    # Aurora decodings are on lon [-180, 180), ERA5 truth on [0, 360)
+    # Aurora decodings are on lon [-180, 180), ERA5 on [0, 360); pres_msl is in hPa
     ds = ds.assign_coords(lon=ds["lon"] % 360).sortby("lon")
-    if "pres_msl" in ds.data_vars:
-        ds["pres_msl"] = ds["pres_msl"] * 100  # Aurora output is hPa, truth is Pa
+    ds["pres_msl"] = ds["pres_msl"] * 100
     return ds
 
 
-dataset_tuned = {}
-dataset_upscale = {}
-for (part, stage), n_blocks in stage_blocks.items():
-    for block in range(n_blocks):
-        key = f"{part}{stage}_block{block}"
+blocks = [(part, stage, block) for part, stage, n, _ in STAGES for block in range(n)]
+upscale_stages = [(part, stage) for part, stage, _, has_upscale in STAGES if has_upscale]
+tuned = {key: load_decoding("tuned", "_translated", *key) for key in blocks}
+upscale = {key: load_decoding("no_skip", "_upscale", *key) for key in blocks if key[:2] in upscale_stages}
 
-        ds_tuned = _load_decode(part, stage, block, "_translated")
-        if ds_tuned is not None:
-            dataset_tuned[key] = ds_tuned
-        else:
-            print(f"  tuned decode missing, skipping: {key}")
+# ERA5 truth and 6 h persistence (the ERA5 state at the initial time) on the 0.25 deg grid
+truth = load_data.load_data(analysis_datetime).sel(time=analysis_datetime).sel(plev=500)
+var_sel = [var for var in tuned[("enc", 1, 0)].data_vars if var in truth.data_vars]
+truth = truth[var_sel]
+persistence = load_data.load_data(init_datetime).sel(time=init_datetime).sel(plev=500)[var_sel]
+mse_persistence = area_weighted_mse(persistence.interp_like(truth), truth)
 
-        ds_upscale = _load_decode(part, stage, block, "_upscale")
-        if ds_upscale is not None:
-            dataset_upscale[key] = ds_upscale
-        else:
-            print(f"  no upscale decoding, skipping: {key}")
 
-# enc stage 0 / dec stage 2: tuned only
-for (part, stage), n_blocks in tuned_only_stage_blocks.items():
-    for block in range(n_blocks):
-        key = f"{part}{stage}_block{block}"
+def relative_mse(decodings):
+    return {key: (area_weighted_mse(ds.interp_like(truth), truth) / mse_persistence).compute()
+            for key, ds in decodings.items()}
 
-        ds_tuned = _load_decode(part, stage, block, "_translated")
-        if ds_tuned is not None:
-            dataset_tuned[key] = ds_tuned
-        else:
-            print(f"  tuned decode missing, skipping: {key}")
 
-# %% LOAD TRUTH AND PERSISTENCE
-# 6 h persistence (the ERA5 state at the Aurora initial time) on the native 0.25 deg grid
-persistency_datetime_6h = fit_datetime
+rel_err_tuned = relative_mse(tuned)
+rel_err_upscale = relative_mse(upscale)
 
-target_truth = load_data.load_data(target_datetime).sel(time=target_datetime).sel(plev=500)
-
-# variables present in both the decodings and the truth
-var_sel = [v for v in dataset_tuned[next(iter(dataset_tuned))].data_vars if v in target_truth.data_vars]
-
-target_truth = target_truth.drop_vars([var for var in target_truth.data_vars if var not in var_sel])
-
-persistency_fc_6h = load_data.load_data(persistency_datetime_6h).sel(time=persistency_datetime_6h).sel(plev=500)
-persistency_fc_6h = persistency_fc_6h.drop_vars([var for var in persistency_fc_6h.data_vars if var not in var_sel])
-
-# %% MSE helper (same as tuned_decoding_comparison_arches.py)
-def area_weighted_mse(forecast, truth):
-    weights = np.cos(np.deg2rad(truth['lat']))
-    mse = ((forecast - truth)**2 * weights).sum(dim=['lat', 'lon']) / weights.sum(dim=['lat'])
-    return mse
-
-# %% Calculate relative error (vs. 6 h persistence) for both decodings
-persistency_fc_6h_interp = persistency_fc_6h.interp_like(target_truth)
-mse_persistency = area_weighted_mse(persistency_fc_6h_interp, target_truth)
-
-rel_err_tuned = {}
-for key, ds in dataset_tuned.items():
-    print(f"Calculating relative error (tuned) for {key}...")
-    ds_interp = ds.interp_like(target_truth)
-    mse_fc = area_weighted_mse(ds_interp, target_truth)
-    rel_err_tuned[key] = (mse_fc / mse_persistency).compute()
-
-rel_err_upscale = {}
-for key, ds in dataset_upscale.items():
-    print(f"Calculating relative error (upscale) for {key}...")
-    ds_interp = ds.interp_like(target_truth)
-    mse_fc = area_weighted_mse(ds_interp, target_truth)
-    rel_err_upscale[key] = (mse_fc / mse_persistency).compute()
-
-# %% PLOT relative MSE per block, tuned (solid) vs. upscale (dashed)
+# %% Plot
 plt.rcParams.update({
     "font.size": 12,
     "axes.labelsize": 16,
@@ -137,56 +78,26 @@ plt.rcParams.update({
     "ytick.labelsize": 14,
     "legend.fontsize": 10,
 })
-
-path_plots = config.SUPPLEMENT_DIR
-
-# all blocks in network order, from enc0 to dec2
-block_order = (
-    [f"enc0_block{block}" for block in range(tuned_only_stage_blocks[("enc", 0)])]
-    + [
-        f"{part}{stage}_block{block}"
-        for (part, stage), n_blocks in stage_blocks.items()
-        for block in range(n_blocks)
-    ]
-    + [f"dec2_block{block}" for block in range(tuned_only_stage_blocks[("dec", 2)])]
-)
-block_labels = [k.replace("_block", "B") for k in block_order]
-x_vals = np.arange(len(block_order))
-
-# colours per variable name as in plots/main/relative_mse_all_variables.py
-# (Aurora has no 'w' and a different variable order)
-REFERENCE_VAR_SEL = ['geopot', 'temp', 'qv', 'u', 'v', 'w', 'u_10m', 'v_10m', 't_2m', 'pres_msl']
-REFERENCE_N_VAR = 10
-var_color_map = dict(zip(REFERENCE_VAR_SEL, cm.tab20(np.linspace(0, 1, REFERENCE_N_VAR))))
+x = np.arange(len(blocks))
 
 fig, ax = plt.subplots(figsize=(16, 8))
-
-for i, var in enumerate(var_sel):
-    y_tuned = [float(rel_err_tuned[k][var]) if k in rel_err_tuned else np.nan for k in block_order]
-    y_upscale = [float(rel_err_upscale[k][var]) if k in rel_err_upscale else np.nan for k in block_order]
-
-    ax.plot(x_vals, y_tuned, label=var, color=var_color_map[var], linestyle="-", linewidth=1.8)
-    ax.plot(x_vals, y_upscale, color=var_color_map[var], linestyle="--", linewidth=1.8, alpha=0.9)
+for var in var_sel:
+    ax.plot(x, [float(rel_err_tuned[key][var]) for key in blocks], label=var, color=VAR_COLORS[var], linestyle="-",
+            linewidth=1.8)
+    ax.plot(x, [float(rel_err_upscale[key][var]) if key in rel_err_upscale else np.nan for key in blocks],
+            color=VAR_COLORS[var], linestyle="--", linewidth=1.8, alpha=0.9)
 
 ax.set_ylabel("Relative MSE per variable (vs. 6h persistence)", fontsize=16)
 ax.set_title("Aurora: tuned vs upscale (direct-to-final) decode", fontsize=18)
-ax.grid(True)
 ax.legend(fontsize=10)
 ax.tick_params(axis="both", which="major", labelsize=10)
-
-tick_idx = np.arange(0, len(block_order), 2)
-ax.set_xticks(tick_idx)
-ax.set_xticklabels([block_labels[i] for i in tick_idx], rotation=90)
+ax.set_xticks(x[::2])
+ax.set_xticklabels([f"{part}{stage}B{block}" for part, stage, block in blocks[::2]], rotation=90)
 ax.grid(True, axis="both", alpha=0.5)
-
-fig.text(
-    0.5, -0.02,
-    "solid = tuned (mid-network, skip-connection path)   |   dashed = upscale (direct-to-final, no skip connections)",
-    ha="center", fontsize=12,
-)
-
+fig.text(0.5, -0.02, "solid = tuned (mid-network, skip-connection path)   |   "
+         "dashed = upscale (direct-to-final, no skip connections)", ha="center", fontsize=12)
 plt.tight_layout()
 
-save_path = os.path.join(path_plots, f"tuned_decoding_comparison_aurora_{target_datetime:%Y-%m-%d-%H-%M}.png")
+save_path = os.path.join(config.SUPPLEMENT_DIR, f"tuned_decoding_comparison_aurora_{analysis_datetime:%Y-%m-%d-%H-%M}.png")
 fig.savefig(save_path, dpi=150, bbox_inches="tight")
-print("Saved:", save_path)
+print(f"Saved {save_path}")
