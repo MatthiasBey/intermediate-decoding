@@ -12,3 +12,6 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 downloads/
+
+# notes on the code cleanup, kept locally
+CHANGES.md
