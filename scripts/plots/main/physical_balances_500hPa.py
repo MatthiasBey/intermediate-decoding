@@ -34,7 +34,7 @@ MODEL_LABELS = {'graphcast': 'GraphCast', 'aurora': 'Aurora', 'arches': 'ArchesW
 MODEL_COLORS = {'graphcast': '#2a78d6', 'aurora': '#eb6834', 'arches': '#1baf7a'}
 ERA5_COLOR = '0.45'
 
-# scale bands of calculations/4_spectral_filtering/1_filter_intermediate_decodings.py, in legend order
+# scale bands of calculations/4_spectral_filtering/filter_intermediate_decodings.py, in legend order
 SCALE_LABELS = {'meso': r'small ($l > 20$)', 'planetary_synoptic': r'large ($l \leq 20$)'}
 SCALE_LINESTYLES = {'meso': '-', 'planetary_synoptic': '--'}
 

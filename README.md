@@ -41,7 +41,7 @@ the bottom of each script. On a SLURM cluster, submit a pipeline with
 
 The paper evaluates 48 forecasts: the 10th of every month in 2020 at 00, 06, 12 and 18 UTC. The
 translators and covariance matrices were computed from the latent states of every 6-hourly forecast
-in 2020. All of this together is several tens of terabytes, too much to publish. Instead, two smaller
+in 2020. All of this together is about 17 TB, too much to publish. Instead, two smaller
 packages are published on Zenodo in three parts, [10.5281/zenodo.23345097](https://doi.org/10.5281/zenodo.23345097), [10.5281/zenodo.23345099](https://doi.org/10.5281/zenodo.23345099) and [10.5281/zenodo.23345101](https://doi.org/10.5281/zenodo.23345101):
 
 - **`data/` (about 110 GB)**: everything needed to redo the analysis for one example forecast, valid
@@ -56,7 +56,8 @@ small parts of `data/` (model losses, translators, land–sea mask), 4.5 GB in t
 for all figures averaged over the 48 forecasts, the covariance figure, the increment maps, the
 translator training-loss figures and both tables. The remaining example-forecast figures
 (`latent_state_development`, `encoder_decoder`, `tuned_decoding_comparison_*`, `latent_channel_*`)
-and the single-run pipelines need everything, which you get with `all`. Run the script without
+and the single-run pipelines need everything, which you get with `all`; with only `results`,
+`run_paper_figures.sh` skips these figures and lists them at the end. Run the script without
 arguments to see all options.
 
 ## The three pipelines

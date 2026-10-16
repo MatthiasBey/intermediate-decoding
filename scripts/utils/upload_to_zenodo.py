@@ -21,9 +21,12 @@ Needs a Zenodo personal access token with the scope deposit:write
 for it when it starts (or reads it from the environment variable ZENODO_TOKEN).
 
 Usage:
-    python scripts/utils/upload_to_zenodo.py <archive folder> [--parallel=N] [--sandbox] [--dry-run]
+    python scripts/utils/upload_to_zenodo.py <archive folder> [--parallel=N] [--only=NAMES] [--sandbox] [--dry-run]
 
 --parallel=N uploads N pieces at the same time (default 3).
+--only=NAMES checks and uploads only these files (comma-separated, e.g.
+    --only=results_paper.tar,md5sums.txt after repacking one archive). Without it, all
+    pieces are compared with the drafts, which reads all archives once.
 --sandbox uses sandbox.zenodo.org (a test instance, needs its own token).
 --dry-run only prints what would be done.
 """
@@ -209,6 +212,7 @@ def main():
     folder = os.path.abspath(args[0])
     sandbox, dry_run = "--sandbox" in sys.argv, "--dry-run" in sys.argv
     parallel = int(next((a.split("=")[1] for a in sys.argv if a.startswith("--parallel=")), 3))
+    only = next((a.split("=")[1].split(",") for a in sys.argv if a.startswith("--only=")), None)
 
     for files in PARTS.values():
         for name in files + ["md5sums.txt"]:
@@ -256,12 +260,18 @@ def main():
     jobs = []
     for part, files in todo.items():
         dep = deps[part]
-        uploaded = {f["filename"]: f["checksum"].replace("md5:", "")
-                    for f in zen.call("GET", f"/deposit/depositions/{dep['id']}/files")}
+        draft_files = zen.call("GET", f"/deposit/depositions/{dep['id']}/files")
+        uploaded = {f["filename"]: f["checksum"].replace("md5:", "") for f in draft_files}
         for extra in sorted(set(uploaded) - {f[0] for f in files}):
             print(f"part {part}: {extra} is in the draft but not needed, delete it on zenodo.org")
-        missing = [f for f in files if f[0] not in uploaded or uploaded[f[0]] != local_md5(*f[1:])]
-        print(f"part {part}: {len(files) - len(missing)} of {len(files)} files uploaded already")
+        checked = [f for f in files if only is None or any(f[0] == n or f[0].startswith(n + ".") for n in only)]
+        missing = [f for f in checked if f[0] not in uploaded or uploaded[f[0]] != local_md5(*f[1:])]
+        # files whose archive has changed since the upload: delete the old version first
+        for f in draft_files:
+            if f["filename"] in {name for name, *_ in missing}:
+                print(f"part {part}: {f['filename']} has changed, deleting the old version in the draft")
+                zen.call("DELETE", f"/deposit/depositions/{dep['id']}/files/{f['id']}")
+        print(f"part {part}: {len(checked) - len(missing)} of {len(checked)} {'checked ' if only else ''}files uploaded already")
         jobs += [(dep["links"]["bucket"], *f) for f in missing]
 
     # upload them, several at a time

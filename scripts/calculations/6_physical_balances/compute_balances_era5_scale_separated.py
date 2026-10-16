@@ -1,5 +1,5 @@
 """Same metrics as compute_balances_intermediate_decodings.py for the band-filtered ERA5
-fields of calculations/4_spectral_filtering/2_filter_era5.py (ERA5 reference lines in
+fields of calculations/4_spectral_filtering/filter_era5.py (ERA5 reference lines in
 plots/main/physical_balances_500hPa.py). Writes one pkl per date to
 results/<mode>/balances_era5_scale_separated/; existing dates are skipped.
 

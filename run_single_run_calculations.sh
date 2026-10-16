@@ -40,9 +40,9 @@ step_encoder_decoder_similarity () {
 # shared preprocessing for the spectra and balances
 step_spectral_filtering () {
     for model in arches aurora graphcast; do
-        run calculations/4_spectral_filtering/1_filter_intermediate_decodings.py "$DATE" "$model"
+        run calculations/4_spectral_filtering/filter_intermediate_decodings.py "$DATE" "$model"
     done
-    run calculations/4_spectral_filtering/2_filter_era5.py "$DATE"
+    run calculations/4_spectral_filtering/filter_era5.py "$DATE"
 }
 
 step_spectra () {   # needs spectral_filtering
@@ -51,9 +51,8 @@ step_spectra () {   # needs spectral_filtering
 }
 
 step_balances () {  # needs spectral_filtering
-    run calculations/6_physical_balances/1_create_spectrally_scaled_era5.py "$DATE"
-    run calculations/6_physical_balances/2_compute_balances_full_forecast.py "$DATE"
-    run calculations/6_physical_balances/3_summarize_balances_full_forecast.py "$DATE"
+    run calculations/6_physical_balances/create_spectrally_scaled_era5.py "$DATE"
+    run calculations/6_physical_balances/compute_balances_full_forecast.py "$DATE"
     run calculations/6_physical_balances/compute_balances_intermediate_decodings.py "$DATE"
     run calculations/6_physical_balances/compute_balances_era5_scale_separated.py "$DATE"
 }

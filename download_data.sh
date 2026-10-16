@@ -27,7 +27,7 @@ cd "$(dirname "$(readlink -f "$0")")"
 # Each archive is stored on Zenodo in pieces of 1 GiB (<name>.tar.000, <name>.tar.001, ...).
 #  name                       group     record    pieces  md5 of the whole archive
 ARCHIVES="
-results_paper                 results   23345097   2      d3d4f8426cf099812d54934b833ce6b3
+results_paper                 results   23345097   2      8315e8e17193d2c7f24151cce5a18329
 data_base                     results   23345097   3      45bc59bc12eed68d507ed6a2af3fa0da
 data_era5                     all       23345097  16      daa1bcf311883c9db3df324837ef2346
 data_latent_states            all       23345099   8      4f2a0a4e81d60eef23fbb06da42a9103

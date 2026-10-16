@@ -1,6 +1,6 @@
 """Mean ageostrophic/geostrophic wind ratio (|lat| < 20 excluded) and divergence/vorticity
 ratio per pressure level for every intermediate decoding, separately for the two
-wavenumber bands of calculations/4_spectral_filtering/1_filter_intermediate_decodings.py.
+wavenumber bands of calculations/4_spectral_filtering/filter_intermediate_decodings.py.
 Writes one pkl per date to results/<mode>/balances_intermediate_decodings/, used by
 plots/main/physical_balances_500hPa.py.
 

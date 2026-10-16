@@ -21,12 +21,26 @@ PY=${PYTHON:-python3}
 
 run () { echo; echo ">>> $PY $*"; "$PY" -u "$@"; }
 
+# The figures of the example forecast that read latent states, decodings or ERA5 fields need all
+# data (download_data.sh all). With only download_data.sh results they are skipped.
+DATA_DIR=${ID_DATA_DIR:-../data}
+SKIPPED=()
+run_full () {
+    if [ -d "$DATA_DIR/latent_states" ] && [ -d "$DATA_DIR/intermediate_decodings" ] \
+            && compgen -G "$DATA_DIR/era5/era4aim_*.nc" > /dev/null; then
+        run "$@"
+    else
+        echo; echo ">>> skipping $1 (needs all data: bash download_data.sh all)"
+        SKIPPED+=("$1")
+    fi
+}
+
 # ---------------- plots (scripts/plots/), one script per figure or table ----------------
 step_plots_main () {
-    run plots/main/latent_state_development.py "$DATE"
+    run_full plots/main/latent_state_development.py "$DATE"
     run plots/main/covariance_similarity.py
     run plots/main/relative_mse_all_variables.py
-    run plots/main/encoder_decoder.py "$DATE"
+    run_full plots/main/encoder_decoder.py "$DATE"
     run plots/main/graphcast_increments_spatial_maps.py "$DATE"
     run plots/main/increment_spectra_geopot_u_10m.py
     run plots/main/physical_balances.py
@@ -39,10 +53,10 @@ step_plots_supplement () {
     run plots/supplement/translator_training_loss.py
     run plots/supplement/no_skip_translator_training_loss_aurora.py
     run plots/supplement/no_skip_translator_training_loss_arches.py
-    run plots/supplement/tuned_decoding_comparison_aurora.py "$DATE"
-    run plots/supplement/tuned_decoding_comparison_arches.py "$DATE"
-    run plots/supplement/latent_channel_aurora.py "$DATE"
-    run plots/supplement/latent_channel_arches.py "$DATE"
+    run_full plots/supplement/tuned_decoding_comparison_aurora.py "$DATE"
+    run_full plots/supplement/tuned_decoding_comparison_arches.py "$DATE"
+    run_full plots/supplement/latent_channel_aurora.py "$DATE"
+    run_full plots/supplement/latent_channel_arches.py "$DATE"
 }
 
 step_tables () {
@@ -52,3 +66,8 @@ step_tables () {
 
 STEPS=${*:-plots_main plots_supplement tables}
 for s in $STEPS; do "step_$s"; done
+
+if [ ${#SKIPPED[@]} -gt 0 ]; then
+    echo; echo "Skipped ${#SKIPPED[@]} figures that need all data (bash download_data.sh all):"
+    printf '  %s\n' "${SKIPPED[@]}"
+fi

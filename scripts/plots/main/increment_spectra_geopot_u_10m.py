@@ -16,7 +16,7 @@ import config
 from utils.increment_spectra import NORM_LABELS, draw_spectra, load_mean_spectra, normalize
 
 MODELS = {'graphcast': 'GraphCast', 'aurora': 'Aurora', 'arches': 'ArchesWeather'}
-DATA_FILE = f"{config.RESULTS_DIR}/spectra/%Y-%m-%d-%H-00/12_0_increment_spectra_#model_500hPa.nc"
+DATA_FILE = f"{config.RESULTS_DIR}/spectra/%Y-%m-%d-%H-00/increment_spectra_#model_500hPa.nc"
 NORMALIZATION = 'log'  # see utils/increment_spectra.py; the centroid is always computed from P(l)
 
 # variables to plot (available: geopot, u_10m, div, vo, ke, each with _incr and _acc)

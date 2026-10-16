@@ -52,8 +52,8 @@ transformed back. `cdo` must be on the `PATH`. Temporary files go to `results/<m
 
 | Script | Computes | Output in `results/<mode>/` |
 |---|---|---|
-| `1_filter_intermediate_decodings.py` | Spectral coefficients and scale-separated fields of all intermediate decodings. Takes the model as a second argument (`arches`, `aurora`, `graphcast` or `all`). | `spectral_filtering/<model>/<date>/` (about 30 GB for GraphCast) |
-| `2_filter_era5.py` | The same for the ERA5 state at the valid time | `spectral_filtering/era5_reference/<date>/` |
+| `filter_intermediate_decodings.py` | Spectral coefficients and scale-separated fields of all intermediate decodings. Takes the model as a second argument (`arches`, `aurora`, `graphcast` or `all`). | `spectral_filtering/<model>/<date>/` (about 35 GB each for GraphCast and Aurora, 6 GB for ArchesWeather) |
+| `filter_era5.py` | The same for the ERA5 state at the valid time | `spectral_filtering/era5_reference/<date>/` |
 
 ## 5_increment_spectra
 
@@ -63,8 +63,8 @@ decoded state minus the input state Xᵗ, increment k the state of layer k minus
 
 | Script | Computes | Output in `results/<mode>/spectra/<date>/` |
 |---|---|---|
-| `compute_increment_spectra_geopot_u10m.py` | Power spectra ℓ·P(ℓ) of the increments for geopotential at 500 hPa and 10 m zonal wind | `12_0_increment_spectra_<model>_500hPa.nc` |
-| `compute_increment_spectra_all_variables.py` | The same spectra for all variables | `13_0_increment_spectra_<model>_all_vars.nc` |
+| `compute_increment_spectra_geopot_u10m.py` | Power spectra ℓ·P(ℓ) of the increments for geopotential at 500 hPa and 10 m zonal wind | `increment_spectra_<model>_500hPa.nc` |
+| `compute_increment_spectra_all_variables.py` | The same spectra for all variables | `increment_spectra_<model>_all_vars.nc` |
 
 ## 6_physical_balances
 
@@ -73,8 +73,7 @@ Needs step 4. Two measures of balance are computed: the ratio of ageostrophic to
 
 | Script | Computes | Output in `results/<mode>/` |
 |---|---|---|
-| `1_create_spectrally_scaled_era5.py` | ERA5 rescaled in spectral space so that its energy per wavenumber matches each model | `spectrally_scaled_era5/<date>/` |
-| `2_compute_balances_full_forecast.py` | r_geo and r_div on all pressure levels for the final forecasts, ERA5 and the rescaled ERA5 | `balances_full_forecast/<date>/` |
-| `3_summarize_balances_full_forecast.py` | Vertical profiles of these ratios | `balances_full_forecast_summary/<date>.pkl` |
+| `create_spectrally_scaled_era5.py` | ERA5 rescaled in spectral space so that its energy per wavenumber matches each model | `spectrally_scaled_era5/<date>/` |
+| `compute_balances_full_forecast.py` | r_geo and r_div on all pressure levels for the final forecasts, ERA5 and the rescaled ERA5: all fields (winds, ratios, divergence, vorticity; about 8 GB per date) and the vertical profiles of the mean ratios | `balances_full_forecast/<date>/`, `balances_full_forecast_summary/<date>.pkl` |
 | `compute_balances_intermediate_decodings.py` | r_geo and r_div of all intermediate decodings, for large and small scales separately | `balances_intermediate_decodings/<date>.pkl` |
 | `compute_balances_era5_scale_separated.py` | The same for ERA5, used as reference | `balances_era5_scale_separated/<date>.pkl` |

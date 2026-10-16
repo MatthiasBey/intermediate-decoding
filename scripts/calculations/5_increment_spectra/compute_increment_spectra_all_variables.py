@@ -69,7 +69,7 @@ sfc_vars = {'graphcast': ['pres_msl', 't_2m', 'u_10m', 'v_10m', 'tot_prec_6h'],
             'arches': ['pres_msl', 't_2m', 'u_10m', 'v_10m']}
 
 results_root = os.path.join(f"{config.RESULTS_DIR}/spectra", DATE)
-temp_folder = f"{config.TMP_DIR}/spectral_filtering/13_0_{DATE}"
+temp_folder = f"{config.TMP_DIR}/spectral_filtering/increment_spectra_all_vars_{DATE}"
 os.makedirs(results_root, exist_ok=True)
 os.makedirs(temp_folder, exist_ok=True)
 
@@ -162,7 +162,7 @@ for model, keys in keys_by_model.items():
     ds_out = ds_out.assign_coords(plev=float(PLEV))
     ds_out.attrs['layer_keys'] = ', '.join(keys)
 
-    out_file = os.path.join(results_root, f"13_0_increment_spectra_{model}_all_vars.nc")
+    out_file = os.path.join(results_root, f"increment_spectra_{model}_all_vars.nc")
     ds_out.to_netcdf(out_file)
     print(f"  Saved {out_file}")
 

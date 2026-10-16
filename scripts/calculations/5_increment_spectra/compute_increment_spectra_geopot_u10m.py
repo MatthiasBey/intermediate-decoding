@@ -9,7 +9,7 @@ for geopot, divergence (div), vorticity (vo), kinetic energy from div and vo
 Power per l is sum_m w_m |c_l^m|^2 (w_m = 1 for m = 0, 2 for m > 0).
 
 geopot, div and vo of the layers are read from the spectral files of
-calculations/4_spectral_filtering/1_filter_intermediate_decodings.py. X_t (time=0 of the
+calculations/4_spectral_filtering/filter_intermediate_decodings.py. X_t (time=0 of the
 decoding files: 6 h before the valid time for GraphCast and Aurora, 24 h for
 ArchesWeather) is transformed here in the same way (N320, ArchesWeather truncated at
 l = 120). Since the transform is linear, differences of coefficients are coefficients of
@@ -44,7 +44,7 @@ aurora_time_str = (analysis_datetime - datetime.timedelta(hours=6)).strftime("%Y
 PLEV = 500.
 N_MAX = 639
 ARCHES_L_MAX = 119  # linear truncation of the N60 grid of ArchesWeather
-ARCHES_L_MAX_FILTER = 120  # truncation of 1_filter_intermediate_decodings.py, also used for X_t
+ARCHES_L_MAX_FILTER = 120  # truncation of filter_intermediate_decodings.py, also used for X_t
 R_EARTH = 6.371e6
 
 blocks_per_layer = {0: 1, 1: 4, 2: 12, 3: 12, 4: 4}
@@ -73,7 +73,7 @@ spec_vars = {'geopot': 'geopot', 'sd': 'div', 'svo': 'vo'}
 
 filtered_fields_root = f"{config.RESULTS_DIR}/spectral_filtering"
 results_root = os.path.join(f"{config.RESULTS_DIR}/spectra", DATE)
-temp_folder = f"{config.TMP_DIR}/spectral_filtering/12_0_{DATE}"
+temp_folder = f"{config.TMP_DIR}/spectral_filtering/increment_spectra_500hPa_{DATE}"
 os.makedirs(results_root, exist_ok=True)
 os.makedirs(temp_folder, exist_ok=True)
 
@@ -90,7 +90,7 @@ def spectral_file(model, key):
 
 def input_spectral_file(model, keys):
     """Spectral coefficients of X_t (geopot, div, vo at PLEV), computed as in
-    calculations/4_spectral_filtering/1_filter_intermediate_decodings.py."""
+    calculations/4_spectral_filtering/filter_intermediate_decodings.py."""
     ds = xr.open_dataset(decode_file(model, keys[0])).isel(time=0)[['geopot', 'u', 'v']].sel(plev=[PLEV]).load()
     ds["lat"].attrs.update({"standard_name": "latitude", "long_name": "latitude", "units": "degrees_north", "axis": "Y"})
     ds["lon"].attrs.update({"standard_name": "longitude", "long_name": "longitude", "units": "degrees_east", "axis": "X"})
@@ -211,7 +211,7 @@ for model, keys in keys_by_model.items():
     ds_out = ds_out.assign_coords(plev=PLEV)
     ds_out.attrs['layer_keys'] = ', '.join(keys)
 
-    out_file = os.path.join(results_root, f"12_0_increment_spectra_{model}_500hPa.nc")
+    out_file = os.path.join(results_root, f"increment_spectra_{model}_500hPa.nc")
     ds_out.to_netcdf(out_file)
     print(f"  Saved {out_file}")
 

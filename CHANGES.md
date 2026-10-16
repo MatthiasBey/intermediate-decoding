@@ -99,7 +99,7 @@ The calculations are unchanged; only unused code was removed.
 |---|---|
 | `2_relative_mse/compute_relative_mse.py` (340 / 191 lines) | The branches for the GraphCast version `s` (1 degree) and the 1-degree truth and persistence fields that only they used were removed (only `std` is computed). The six Aurora loading loops are one loop. The six conversion functions for the pickle are two (`mean_over_dates`, `to_floats`). The relative MSE is computed with the same steps in one helper function. The pickle has the same structure and key order. |
 | `1_increments/*.py` | The list of the 48 dates is taken from `config.DATES_48` (identical list) instead of being written out in every script. |
-| `6_physical_balances/1_create_spectrally_scaled_era5.py` | The unused return values of the `reconstruct` calls (`recon_*`) are no longer stored. |
+| `6_physical_balances/create_spectrally_scaled_era5.py` | The unused return values of the `reconstruct` calls (`recon_*`) are no longer stored. |
 | `6_physical_balances/*.py` | `lat_cut=None` is no longer passed (see `physical_consistency_functions.py`). |
 | all | Header and docstring as described above. |
 
@@ -162,3 +162,45 @@ All three pipelines were run with the old and the new scripts and the outputs co
    latent states of 2020): all scripts compile, and a comparison of their syntax trees with the
    old versions shows that apart from the header, the docstring position and the changed strings
    the code is the same.
+
+## Later changes (16 October 2026)
+
+**Balances of the final forecasts in one script.** `3_summarize_balances_full_forecast.py` only
+extracted the two mean profiles from the full results of `2_compute_balances_full_forecast.py`
+(geostrophic and ageostrophic wind, point-wise ratios, divergence, vorticity on the full grid;
+about 7.9 GB per date in `results/<mode>/balances_full_forecast/<date>/`). The script (now
+`compute_balances_full_forecast.py`) still writes these full results and now also writes the small
+summary `balances_full_forecast_summary/<date>.pkl` itself; `3_summarize_balances_full_forecast.py`
+was removed. Checked: the 7 full result files and the summary are identical to those of the old
+two-step chain (values, data types and key order).
+
+**No numbers in script and file names.** Renamed:
+
+| Before | After |
+|---|---|
+| `4_spectral_filtering/1_filter_intermediate_decodings.py` | `4_spectral_filtering/filter_intermediate_decodings.py` |
+| `4_spectral_filtering/2_filter_era5.py` | `4_spectral_filtering/filter_era5.py` |
+| `6_physical_balances/1_create_spectrally_scaled_era5.py` | `6_physical_balances/create_spectrally_scaled_era5.py` |
+| `6_physical_balances/2_compute_balances_full_forecast.py` | `6_physical_balances/compute_balances_full_forecast.py` |
+| `spectra/<date>/12_0_increment_spectra_<model>_500hPa.nc` | `spectra/<date>/increment_spectra_<model>_500hPa.nc` |
+| `spectra/<date>/13_0_increment_spectra_<model>_all_vars.nc` | `spectra/<date>/increment_spectra_<model>_all_vars.nc` |
+| `covariance_matrices/graphcast/<NN>_avg_covariance_step<NN>.npz` | `covariance_matrices/graphcast/avg_covariance_step<NN>.npz` |
+| `covariance_matrices/graphcast/withtranslator_<NN>_avg_covariance_step<NN>.npz` | `covariance_matrices/graphcast/withtranslator_avg_covariance_step<NN>.npz` |
+
+The step folders (`1_increments` ... `6_physical_balances`) keep their numbers, which give the order
+of the steps; within a folder, the order is given by `run_single_run_calculations.sh`. The files in
+`results/paper/` and `results/single_run/` were renamed accordingly (288 + 6 spectra files, 34
+covariance matrices), and `results_paper.tar` was packed again: same 843 entries with the same sizes,
+only the new names (new md5 in `download_data.sh` and `md5sums.txt`). Checked: both spectra
+calculations write the new names with identical content, the spectra figures read them, and the
+covariance figure is pixel-identical to the one before the renaming (when made on a compute node; on
+the workstation a few pixels differ by at most 3/255 in colour, from rounding on a different CPU).
+
+**Upload script.** `upload_to_zenodo.py` deletes files in a draft whose archive has changed since
+the upload (different checksum) before uploading the new version.
+
+**Paper pipeline with only the `results` download.** `run_paper_figures.sh` stopped at the first
+figure when only `download_data.sh results` had been run, because `latent_state_development.py`
+needs the latent states. The six figures that need all data (`latent_state_development`,
+`encoder_decoder`, `tuned_decoding_comparison_*`, `latent_channel_*`) are now skipped if the latent
+states, decodings or ERA5 fields are missing, and listed at the end.

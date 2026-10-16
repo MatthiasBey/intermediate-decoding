@@ -52,13 +52,10 @@ def similarity_matrix(cov_matrices):
 
 
 def load_graphcast(translated):
-    # raw files start with the step number ("00_...", "01_...")
     folder = f"{config.COVARIANCE_DIR}/graphcast"
-    files = glob.glob(os.path.join(folder, "withtranslator_*_avg_covariance_step*.npz" if translated
-                                   else "*_avg_covariance_step*.npz"))
-    if not translated:
-        files = [f for f in files if not os.path.basename(f).startswith("withtranslator_")]
-    files = sorted(files, key=lambda f: int(re.search(r"step(\d+)\.npz$", f).group(1)))
+    prefix = "withtranslator_" if translated else ""
+    files = sorted(glob.glob(os.path.join(folder, f"{prefix}avg_covariance_step*.npz")),
+                   key=lambda f: int(re.search(r"step(\d+)\.npz$", f).group(1)))
     return np.array([np.load(f)["avg_cov"] for f in files])
 
 

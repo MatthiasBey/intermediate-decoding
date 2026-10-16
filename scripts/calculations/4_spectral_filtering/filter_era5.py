@@ -1,4 +1,4 @@
-"""Same spectral filtering as 1_filter_intermediate_decodings.py, applied to the ERA5
+"""Same spectral filtering as filter_intermediate_decodings.py, applied to the ERA5
 state at the forecast valid time. Output: results/<mode>/spectral_filtering/era5_reference/<date>/
 (era5_filtered_<band>.nc, era5_<band>_filtered_recon.nc, ...).
 
@@ -37,7 +37,7 @@ save_root = f"{config.RESULTS_DIR}/spectral_filtering"
 output_path = os.path.join(save_root, "era5_reference", time_str)
 os.makedirs(output_path, exist_ok=True)
 
-# %% HELPERS (as in 1_filter_intermediate_decodings.py)
+# %% HELPERS (as in filter_intermediate_decodings.py)
 
 def add_cf_metadata(ds):
     if "lat" in ds.coords:

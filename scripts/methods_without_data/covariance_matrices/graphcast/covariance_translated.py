@@ -108,7 +108,7 @@ def finalize_and_plot(step_idx, key):
     print(f"[Step {step_idx:02d}] Used {T}/{len(latent_files)} timesteps")
 
     # Save
-    np.savez_compressed(os.path.join(SAVE_DIR, f"withtranslator_{step_idx:02d}_avg_covariance_step{step_idx:02d}.npz"), avg_cov=avg_cov_np)
+    np.savez_compressed(os.path.join(SAVE_DIR, f"withtranslator_avg_covariance_step{step_idx:02d}.npz"), avg_cov=avg_cov_np)
     print(f"[Step {step_idx:02d}] Saved withtranslator_avg_covariance_step{step_idx:02d}.npz")
 
     # Metrics
@@ -158,7 +158,7 @@ def finalize_and_plot(step_idx, key):
     plt.xlabel("Hidden dimension")
     plt.ylabel("Hidden dimension")
     plt.tight_layout()
-    plt.savefig(f"{PLOT_DIR}/withtranslator_{step_idx:02d}_avg_covariance_step{step_idx:02d}.png", dpi=300)
+    plt.savefig(f"{PLOT_DIR}/withtranslator_avg_covariance_step{step_idx:02d}.png", dpi=300)
     plt.close()
 
     print(f"[Step {step_idx:02d}] Plots saved.")

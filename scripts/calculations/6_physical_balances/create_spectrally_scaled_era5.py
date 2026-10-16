@@ -2,7 +2,7 @@
 of each model's final forecast (sqrt of the power ratio model / ERA5), and
 reconstructed on the ERA5 grid with u, v from the scaled divergence and vorticity. Also
 reconstructs the unscaled forecasts and ERA5 the same way. Input: spectral files of
-calculations/4_spectral_filtering/1_filter_intermediate_decodings.py. Output:
+calculations/4_spectral_filtering/filter_intermediate_decodings.py. Output:
 results/<mode>/spectrally_scaled_era5/<date>/.
 
 sys.argv[1] = forecast valid time ("%Y-%m-%d-%H-%M", default: config.SINGLE_DATE)
@@ -35,7 +35,7 @@ gg_res = 'N320'  # Gaussian grid of the spectral transform, for all models and E
 l_max = 640      # number of total wavenumbers of N320 (l = 0..639)
 
 # Spectral coefficients of the final forecast of each model: the decoding of the last
-# block/step written by calculations/4_spectral_filtering/1_filter_intermediate_decodings.py
+# block/step written by calculations/4_spectral_filtering/filter_intermediate_decodings.py
 _spectral_source_root = f"{config.RESULTS_DIR}/spectral_filtering"
 arches_spectral_path = f"{_spectral_source_root}/arches/{time_str}/ds_layer_4_block_3_spectral_var_all_vars.nc"
 gc_spectral_paths = {v: f"{_spectral_source_root}/graphcast/{time_str}/ds_{v}_gnnsteps_16_spectral_var_all_vars.nc" for v in gc_versions}
@@ -43,7 +43,7 @@ aurora_spectral_path = f"{_spectral_source_root}/aurora/{time_str}/ds_dec_stage2
 
 # ArchesWeather and ERA5 scaled to ArchesWeather are reconstructed on the ArchesWeather
 # grid (121x240, 1.5 deg), all other fields on the ERA5 grid (721x1440). This file of
-# 1_filter_intermediate_decodings.py only provides the grid.
+# filter_intermediate_decodings.py only provides the grid.
 arches_native_grid_template = f"{_spectral_source_root}/arches/{time_str}/layer_4_block_3_planetary_synoptic_filtered_recon.nc"
 
 temp_folder = f"{config.TMP_DIR}/spectral_filtering_scaled_era5/{time_str}"
@@ -181,7 +181,7 @@ spectral_filt.reconstruct(filtered_file, file_reg_era5, temp_folder=temp_folder,
 
 # %% reconstruct the unscaled forecasts and ERA5 in the same way (ERA5 grid,
 # ArchesWeather on its own grid), with sd/svo from the spectral transform, for
-# 2_compute_balances_full_forecast.py
+# compute_balances_full_forecast.py
 
 print("=== Reconstructing Arches' own forecast (onto Arches's own native grid) ===")
 spectral_filt.reconstruct(arches_spectral_path, arches_native_grid_template, temp_folder=temp_folder,

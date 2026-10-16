@@ -3,7 +3,7 @@ vorticity, averaged over config.DATES, for ERA5, the GraphCast, Aurora and Arche
 forecasts and ERA5 spectrally scaled to each model. A forecast and the ERA5 reference scaled to
 that model share the colour (solid and dashed), ERA5 itself is black.
 
-Input: the per-date summaries of calculations/6_physical_balances/3_summarize_balances_full_forecast.py.
+Input: the per-date summaries of calculations/6_physical_balances/compute_balances_full_forecast.py.
 """
 import os
 import pickle

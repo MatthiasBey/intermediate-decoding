@@ -16,7 +16,7 @@ import config
 from utils.increment_spectra import NORM_LABELS, draw_spectra, load_mean_spectra, normalize
 
 MODELS = {'graphcast': 'GraphCast', 'aurora': 'Aurora', 'arches': 'ArchesWeather'}
-DATA_FILE = f"{config.RESULTS_DIR}/spectra/%Y-%m-%d-%H-00/13_0_increment_spectra_#model_all_vars.nc"
+DATA_FILE = f"{config.RESULTS_DIR}/spectra/%Y-%m-%d-%H-00/increment_spectra_#model_all_vars.nc"
 SUFFIX = '_incr'        # '_acc' for the accumulated changes instead of the increments
 NORMALIZATION = 'log'   # see utils/increment_spectra.py; the centroid is always computed from P(l)
 NCOLS = 3

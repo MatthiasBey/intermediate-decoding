@@ -22,7 +22,7 @@ and 18 UTC). Most folders hold one file per forecast, with the same layout as in
 | `relative_mse/` | `calculations/2_relative_mse/compute_relative_mse.py` | `plots/main/relative_mse_all_variables.py` |
 | `encoder_decoder_similarity/` | `calculations/3_encoder_decoder_similarity/compute_encoder_decoder_similarity.py` | `plots/tables/encoder_decoder_pattern_correlation.py` |
 | `spectra/` | `calculations/5_increment_spectra/` | `plots/main/increment_spectra_geopot_u_10m.py`, `plots/supplement/increment_spectra_all_variables.py` |
-| `balances_full_forecast_summary/` | `calculations/6_physical_balances/3_summarize_balances_full_forecast.py` | `plots/main/physical_balances.py` |
+| `balances_full_forecast_summary/` | `calculations/6_physical_balances/compute_balances_full_forecast.py` | `plots/main/physical_balances.py` |
 | `balances_intermediate_decodings/` | `calculations/6_physical_balances/compute_balances_intermediate_decodings.py` | `plots/main/physical_balances_500hPa.py` |
 | `balances_era5_scale_separated/` | `calculations/6_physical_balances/compute_balances_era5_scale_separated.py` | `plots/main/physical_balances_500hPa.py` |
 | `increments/` | `calculations/1_increments/` | `plots/main/graphcast_increments_spatial_maps.py`, `plots/supplement/increments_all_models.py` |
